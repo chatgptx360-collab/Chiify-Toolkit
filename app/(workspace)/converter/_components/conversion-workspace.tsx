@@ -178,7 +178,7 @@ export function ConversionWorkspace() {
                     ))}
                   </ul>
                   <Button variant="link" className="mt-2 h-auto p-0" asChild>
-                    <Link href={`/projects/${project.id}` as Route}>
+                    <Link href={`/projects?id=${project.id}` as Route}>
                       Fill it in
                       <ArrowRight aria-hidden="true" />
                     </Link>

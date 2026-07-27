@@ -1,6 +1,15 @@
 'use client'
 
-import { AlertTriangle, CheckCircle2, Download, Loader2, Wand2 } from 'lucide-react'
+import {
+  AlertTriangle,
+  BookOpen,
+  CheckCircle2,
+  Download,
+  Loader2,
+  ShieldCheck,
+  Wand2,
+} from 'lucide-react'
+import Link from 'next/link'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -129,9 +138,25 @@ export function GenerationPanel({ epub, blockers = [] }: GenerationPanelProps) {
             </div>
           ) : null}
 
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="secondary" size="sm" asChild>
+              <Link href="/preview">
+                <BookOpen aria-hidden="true" />
+                Read it
+              </Link>
+            </Button>
+            <Button variant="secondary" size="sm" asChild>
+              <Link href="/validation">
+                <ShieldCheck aria-hidden="true" />
+                Check it
+              </Link>
+            </Button>
+          </div>
+
           <p className="text-xs text-subtle-foreground">
-            Validation and an in-app reader arrive in Phase 5. Until then, this file opens in Apple
-            Books, Calibre, Kobo and any other EPUB 3 reader.
+            This file opens in Apple Books, Calibre, Kobo and any other EPUB 3 reader. Check it
+            before you submit it anywhere — the report covers the specification, accessibility and
+            each store&rsquo;s own requirements.
           </p>
         </div>
       ) : null}

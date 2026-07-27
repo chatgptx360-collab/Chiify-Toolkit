@@ -41,7 +41,7 @@ export function ProjectCard({ project, now, actions }: ProjectCardProps) {
         <div className="flex items-start justify-between gap-3">
           <CardTitle className="min-w-0">
             <Link
-              href={`/projects/${project.id}` as Route}
+              href={`/projects?id=${project.id}` as Route}
               // `before:` stretches the hit area over the whole card while the
               // link's accessible name stays just the title.
               className="outline-none before:absolute before:inset-0 before:rounded-xl before:content-['']"

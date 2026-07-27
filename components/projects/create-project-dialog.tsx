@@ -66,7 +66,7 @@ export function CreateProjectDialog() {
     })
     // Land the author on the project they just made, which is where every
     // next action lives.
-    router.push(`/projects/${result.value.id}` as Route)
+    router.push(`/projects?id=${result.value.id}` as Route)
   }
 
   return (
