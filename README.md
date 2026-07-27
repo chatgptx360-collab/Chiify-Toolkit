@@ -6,13 +6,17 @@ Chiify Toolkit is a publishing workspace for authors. Version 1 turns Microsoft
 Word (`.docx`) manuscripts into valid EPUB 3 books; later versions grow into a
 complete publishing ecosystem.
 
-> **This repository is at Phase 5 — validation, preview and quality.**
-> Chiify reads a real Word manuscript, produces a complete internal document
-> model, generates a valid EPUB 3 book from it, checks that book against the
-> specification and against what retailers require, scores it, proposes fixes
-> you approve before they are applied, and lets you read it at the screen sizes
-> and reader settings you do not control. What is here is production-quality;
-> what is missing is stated plainly rather than stubbed out.
+> **Version 1.0.** Chiify reads a Word manuscript, produces a complete internal
+> document model, generates a valid EPUB 3 book from it, checks that book
+> against the specification and against what retailers require, scores it,
+> proposes fixes you approve before they are applied, and lets you read it at
+> the screen sizes and reader settings you do not control — all in your own
+> browser, with nothing uploaded anywhere.
+>
+> Parsing and generation run in Web Workers, so the interface stays responsive
+> while a long manuscript is read. See [`CHANGELOG.md`](CHANGELOG.md) for what
+> 1.0 changed and [Known limitations](#known-limitations) for what it does not
+> do.
 
 ---
 
@@ -34,29 +38,30 @@ complete publishing ecosystem.
 
 ## What is built
 
-| Area                                                                                                                            | Status      |
-| ------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| Next.js 16 App Router, React 19, TypeScript (strict)                                                                            | Configured  |
-| Tailwind CSS v4, CSS-first design tokens, dark-first theming                                                                    | Complete    |
-| Component library (buttons, cards, inputs, badges, dialogs, alerts, progress, empty states, skeletons, toasts, tooltips, menus) | Complete    |
-| Responsive application shell (top bar, collapsible sidebar, mobile drawer, breadcrumbs, footer, theme toggle)                   | Complete    |
-| Six placeholder routes with real content describing their purpose                                                               | Complete    |
-| Domain model, conversion-pipeline contract, parser registry, EPUB generator ports                                               | Complete    |
-| Motion vocabulary and animation utilities                                                                                       | Complete    |
-| ESLint + Prettier + typecheck, all green                                                                                        | Complete    |
-| Project management — create, search, delete, local-first storage                                                                | Complete    |
-| DOCX parsing into the internal document model                                                                                   | Complete    |
-| EPUB 3 generation — XHTML, CSS, navigation, metadata, packaging, download                                                       | Complete    |
-| Validation, chapter detection with confidence, image extraction, statistics                                                     | Complete    |
-| Accessible manuscript upload with format and size validation                                                                    | Complete    |
-| Book metadata forms with publishing-rule validation                                                                             | Complete    |
-| Per-project conversion settings, dashboard driven by real data                                                                  | Complete    |
-| In-app reader preview with device sizes and simulated reader settings                                                           | Complete    |
-| Specification, accessibility and retailer validation with calculated quality scores                                             | Complete    |
-| Automatic fix proposals, shown before they are applied                                                                          | Complete    |
-| Exportable reports — printable HTML, JSON, plain text                                                                           | Complete    |
-| Static export, published automatically to GitHub Pages by a workflow                                                            | Complete    |
-| Web Worker offloading, IndexedDB persistence, further export formats                                                            | **Phase 6** |
+| Area                                                                                                                            | Status     |
+| ------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| Next.js 16 App Router, React 19, TypeScript (strict)                                                                            | Configured |
+| Tailwind CSS v4, CSS-first design tokens, dark-first theming                                                                    | Complete   |
+| Component library (buttons, cards, inputs, badges, dialogs, alerts, progress, empty states, skeletons, toasts, tooltips, menus) | Complete   |
+| Responsive application shell (top bar, collapsible sidebar, mobile drawer, breadcrumbs, footer, theme toggle)                   | Complete   |
+| Six placeholder routes with real content describing their purpose                                                               | Complete   |
+| Domain model, conversion-pipeline contract, parser registry, EPUB generator ports                                               | Complete   |
+| Motion vocabulary and animation utilities                                                                                       | Complete   |
+| ESLint + Prettier + typecheck, all green                                                                                        | Complete   |
+| Project management — create, search, delete, local-first storage                                                                | Complete   |
+| DOCX parsing into the internal document model                                                                                   | Complete   |
+| EPUB 3 generation — XHTML, CSS, navigation, metadata, packaging, download                                                       | Complete   |
+| Validation, chapter detection with confidence, image extraction, statistics                                                     | Complete   |
+| Accessible manuscript upload with format and size validation                                                                    | Complete   |
+| Book metadata forms with publishing-rule validation                                                                             | Complete   |
+| Per-project conversion settings, dashboard driven by real data                                                                  | Complete   |
+| In-app reader preview with device sizes and simulated reader settings                                                           | Complete   |
+| Specification, accessibility and retailer validation with calculated quality scores                                             | Complete   |
+| Automatic fix proposals, shown before they are applied                                                                          | Complete   |
+| Exportable reports — printable HTML, JSON, plain text                                                                           | Complete   |
+| Static export, published automatically to GitHub Pages by a workflow                                                            | Complete   |
+| Background processing in Web Workers, structured logging, halved bundle                                                         | Complete   |
+| IndexedDB persistence, further export formats, AI assistance                                                                    | Post-1.0   |
 
 ### Deliberate non-goals so far
 
@@ -528,6 +533,12 @@ is the registry pattern generalised; **themes** are another token block;
 - [`docs/epub-generation.md`](docs/epub-generation.md) — the EPUB 3 engine: the
   package it produces, the specification rules that break books when ignored,
   and why the stylesheet is deliberately restrained.
+- [`CHANGELOG.md`](CHANGELOG.md) — what changed in 1.0, and the versioning rules.
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — the boundaries a change must respect.
+- [`docs/testing.md`](docs/testing.md) — the suites, the fixtures, and why
+  components are verified in a browser rather than mounted in isolation.
+- [`docs/troubleshooting.md`](docs/troubleshooting.md) — what each error means
+  and what to do about it.
 - [`docs/deployment.md`](docs/deployment.md) — the automatic GitHub Pages
   deployment, the Vercel alternative, and what a visitor to a shared link
   actually gets.
@@ -538,3 +549,38 @@ is the registry pattern generalised; **themes** are another token block;
   component catalogue and usage rules.
 - The live design-system reference is at `/settings` in the running app, rendered
   from the real components so it cannot drift from reality.
+
+---
+
+## Known limitations
+
+Stated plainly, because a tool that hides these costs its user more than it saves.
+
+- **Validation is Chiify's own, not EPUBCheck's.** EPUBCheck is a Java
+  application and this tool has no server to run one on. The report and every
+  export say so. Treat it as preparation and the retailer's validation as the
+  authority.
+- **Nothing is stored on a server.** Projects live in one browser on one device.
+  Clearing site data loses them. Parsed manuscripts and generated books are held
+  for the session only.
+- **DOCX in, EPUB 3 out.** No `.doc`, no ODT, no Markdown; no PDF, MOBI or
+  fixed-layout output. The parser registry and the generator seam exist so those
+  are additions rather than rewrites.
+- **Text boxes and linked images are not read.** Word stores both outside the
+  document body, where no converter reaches.
+- **Very large illustrated manuscripts can exhaust a browser tab.** The
+  manuscript, the model and the book are all held at once.
+- **Automated accessibility checking establishes a floor.** It cannot tell you
+  whether alt text is _good_, and `image1.png` passes every rule.
+
+## Credits
+
+Built with [Next.js](https://nextjs.org), [React](https://react.dev),
+[Tailwind CSS](https://tailwindcss.com) and [Radix UI](https://radix-ui.com).
+Manuscripts are read with [Mammoth](https://github.com/mwilliamson/mammoth.js),
+packaged with [JSZip](https://stuk.github.io/jszip/), and written with
+[xmlbuilder2](https://oozcitak.github.io/xmlbuilder2/). Icons by
+[Lucide](https://lucide.dev), motion by [Motion](https://motion.dev).
+
+The EPUB 3 and OCF specifications are published by the
+[W3C](https://www.w3.org/publishing/epub3/).
