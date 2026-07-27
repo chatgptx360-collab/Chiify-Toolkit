@@ -15,4 +15,13 @@ export {
   registerParser,
   resolveParser,
 } from './registry'
+export {
+  INPUT_FORMATS,
+  fileInputAccept,
+  identifyFormat,
+  supportedExtensionList,
+  supportedFormats,
+  type FormatStatus,
+  type InputFormat,
+} from './formats'
 export type { DocumentParser, ParseInput, ParseOptions } from './types'

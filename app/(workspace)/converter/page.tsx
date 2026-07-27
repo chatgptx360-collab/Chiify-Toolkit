@@ -1,15 +1,15 @@
-import { FileType2, Images, ListTree, Palette, ScanText, Upload, Wand2 } from 'lucide-react'
+import { Images, ListTree, Palette, ScanText } from 'lucide-react'
 import type { Metadata } from 'next'
 
 import { FeatureCard } from '@/components/cards/feature-card'
-import { EmptyState } from '@/components/common/empty-state'
 import { PageHeader } from '@/components/common/page-header'
 import { Section } from '@/components/common/section'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
+
+import { ConversionWorkspace } from './_components/conversion-workspace'
 
 export const metadata: Metadata = {
   title: 'Converter',
@@ -103,35 +103,18 @@ export default function ConverterPage() {
         title="Converter"
         description="Upload a Microsoft Word manuscript and get a valid, retailer-ready EPUB 3 book."
         badge={{ label: 'Phase 3 – 4', intent: 'neutral' }}
-        actions={
-          <Button variant="primary" disabled>
-            <Upload aria-hidden="true" />
-            Upload manuscript
-          </Button>
-        }
       />
 
       <Alert intent="info">
-        <AlertTitle>The conversion engine is not built yet</AlertTitle>
+        <AlertTitle>Upload works; the conversion engine does not exist yet</AlertTitle>
         <AlertDescription>
-          Phase 1 establishes the pipeline contract that every conversion step plugs into. The
-          stages below are already defined in the codebase — later phases supply their
-          implementations without changing this screen&rsquo;s structure.
+          You can attach a manuscript to a project today. Reading it is the parsing engine&rsquo;s
+          job in Phase 3, and building the EPUB is Phase 4 — both plug into the pipeline stages
+          listed below without changing this screen.
         </AlertDescription>
       </Alert>
 
-      <EmptyState
-        icon={FileType2}
-        size="lg"
-        title="Drop a .docx manuscript here"
-        description="The upload experience arrives in Phase 2 and the parsing engine in Phase 3. Once both land, dropping a file here will start the pipeline shown below."
-        action={
-          <Button variant="outline" disabled>
-            <Wand2 aria-hidden="true" />
-            Choose a file
-          </Button>
-        }
-      />
+      <ConversionWorkspace />
 
       <Section
         title="Conversion pipeline"

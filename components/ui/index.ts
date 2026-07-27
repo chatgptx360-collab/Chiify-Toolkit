@@ -47,7 +47,9 @@ export {
 export { Input, Textarea, inputVariants, type InputProps, type TextareaProps } from './input'
 export { Label, type LabelProps } from './label'
 export { Progress, type ProgressProps } from './progress'
+export { Select, type SelectProps } from './select'
 export { Separator } from './separator'
+export { Switch, type SwitchProps } from './switch'
 export { Skeleton, SkeletonCard, SkeletonGroup, SkeletonText, type SkeletonProps } from './skeleton'
 export { ToastProvider, useToast } from './toast'
 export {

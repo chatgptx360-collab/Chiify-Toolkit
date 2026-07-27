@@ -1,23 +1,15 @@
-import {
-  ArrowRight,
-  BookOpen,
-  CheckCircle2,
-  FileCheck2,
-  FolderOpen,
-  Layers,
-  Sparkles,
-  Wand2,
-} from 'lucide-react'
+import { CheckCircle2, FileCheck2, FolderOpen, Wand2 } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
 import { RoadmapCard } from '@/components/cards/roadmap-card'
-import { EmptyState } from '@/components/common/empty-state'
 import { PageHeader } from '@/components/common/page-header'
 import { Section } from '@/components/common/section'
 import { StatCard } from '@/components/dashboard/stat-card'
 import { Button } from '@/components/ui/button'
 import { siteConfig } from '@/lib/config/site'
+
+import { LibraryOverview } from './_components/library-overview'
 
 export const metadata: Metadata = {
   title: 'Dashboard',
@@ -27,10 +19,10 @@ export const metadata: Metadata = {
 /**
  * Dashboard.
  *
- * The statistics read zero because there is genuinely no data yet — showing
- * invented numbers would make the shell feel finished while hiding the fact
- * that the data layer does not exist. Zero states are the honest version, and
- * they exercise the same components the real values will use.
+ * A Server Component holding the static half of the page — the delivery plan
+ * and the quality gates. Everything derived from the project store lives in
+ * `<LibraryOverview>`, a client island, so this route keeps its `metadata`
+ * export and ships no more JavaScript than the data actually requires.
  */
 const ROADMAP = [
   {
@@ -49,19 +41,19 @@ const ROADMAP = [
     phase: 'Phase 2',
     title: 'Workspace',
     description: 'Projects, uploads and metadata capture.',
-    state: 'active' as const,
+    state: 'complete' as const,
     items: [
-      'Project creation and management',
-      'Manuscript upload experience',
-      'Book metadata forms',
-      'Dashboard with live data',
+      'Project creation, search and deletion',
+      'Accessible manuscript upload',
+      'Validated book metadata forms',
+      'Dashboard driven by real data',
     ],
   },
   {
     phase: 'Phase 3 – 5',
     title: 'Conversion',
     description: 'Parsing, generation, validation and delivery.',
-    state: 'upcoming' as const,
+    state: 'active' as const,
     items: [
       'DOCX parsing and chapter detection',
       'EPUB 3 generation',
@@ -77,7 +69,7 @@ export default function DashboardPage() {
       <PageHeader
         title="Dashboard"
         description={siteConfig.tagline}
-        badge={{ label: 'Phase 1 · Foundation', intent: 'primary' }}
+        badge={{ label: 'Phase 2 · Workspace', intent: 'primary' }}
         actions={
           <>
             <Button variant="secondary" asChild>
@@ -96,48 +88,7 @@ export default function DashboardPage() {
         }
       />
 
-      <Section title="Overview" description="Your publishing activity at a glance.">
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard
-            label="Projects"
-            value="0"
-            icon={FolderOpen}
-            hint="Manuscripts in your workspace"
-          />
-          <StatCard
-            label="Books converted"
-            value="0"
-            icon={BookOpen}
-            hint="EPUB 3 files generated"
-          />
-          <StatCard
-            label="Validation passes"
-            value="0"
-            icon={CheckCircle2}
-            hint="Books that cleared every check"
-          />
-          <StatCard label="Words processed" value="0" icon={Layers} hint="Across all manuscripts" />
-        </div>
-      </Section>
-
-      <Section
-        title="Recent activity"
-        description="Conversions, validations and downloads will appear here."
-      >
-        <EmptyState
-          icon={Sparkles}
-          title="Nothing to show yet"
-          description="Once project management arrives in Phase 2, every upload, conversion and validation run will be listed here with its outcome."
-          action={
-            <Button variant="outline" asChild>
-              <Link href="/converter">
-                Explore the converter
-                <ArrowRight aria-hidden="true" />
-              </Link>
-            </Button>
-          }
-        />
-      </Section>
+      <LibraryOverview />
 
       <Section
         title="Delivery plan"

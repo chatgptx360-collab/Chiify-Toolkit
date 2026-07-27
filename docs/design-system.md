@@ -174,6 +174,8 @@ via `useReducedMotion()`.
 | `Alert`                      | Inline, persistent state message; each intent carries a default icon                                                                                                                                         |
 | `Dialog`                     | Radix; focus trap, restoration, scroll lock, background inerting                                                                                                                                             |
 | `DropdownMenu`               | Radix; roving focus and type-ahead                                                                                                                                                                           |
+| `Select`                     | Native `<select>` — the OS picker on mobile, correct keyboard and screen-reader behaviour for free, no dependency. Replace with a listbox the moment options need icons, descriptions or search              |
+| `Switch`                     | `<input type="checkbox" role="switch">`; the input stays focusable and the visible track is styled with `peer-*` variants                                                                                    |
 | `Progress`                   | Determinate and indeterminate; four intents                                                                                                                                                                  |
 | `Skeleton`                   | `aria-hidden`; `SkeletonGroup` provides the single announcement                                                                                                                                              |
 | `Tooltip`                    | Supplementary only — never the sole location of information                                                                                                                                                  |
@@ -186,18 +188,21 @@ interfaces that shout transient popups about permanent problems.
 
 ### Patterns — `components/common`, `cards`, `dashboard`, `forms`
 
-| Component     | Notes                                                                                |
-| ------------- | ------------------------------------------------------------------------------------ |
-| `PageHeader`  | One per route; guarantees exactly one `<h1>`                                         |
-| `Section`     | Titled band; explicit heading level keeps the outline correct                        |
-| `EmptyState`  | Enforces icon + title + explanation + next action                                    |
-| `ThemeToggle` | Three-way (light / dark / system) — a two-state switch cannot express "follow my OS" |
-| `Logo`        | Inline SVG inheriting `currentColor`; `markOnly` for the collapsed rail              |
-| `FeatureCard` | A capability with a status badge                                                     |
-| `RoadmapCard` | A delivery phase and its contents                                                    |
-| `StatCard`    | One headline number; takes a pre-formatted string, not a number                      |
-| `FormField`   | Generates ids and wires `aria-describedby` / `aria-invalid`                          |
-| `FormSection` | Real `<fieldset>` + `<legend>` grouping                                              |
+| Component            | Notes                                                                                                          |
+| -------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `PageHeader`         | One per route; guarantees exactly one `<h1>`                                                                   |
+| `Section`            | Titled band; explicit heading level keeps the outline correct                                                  |
+| `EmptyState`         | Enforces icon + title + explanation + next action                                                              |
+| `ThemeToggle`        | Three-way (light / dark / system) — a two-state switch cannot express "follow my OS"                           |
+| `Logo`               | Inline SVG inheriting `currentColor`; `markOnly` for the collapsed rail                                        |
+| `FeatureCard`        | A capability with a status badge                                                                               |
+| `RoadmapCard`        | A delivery phase and its contents                                                                              |
+| `StatCard`           | One headline number; takes a pre-formatted string, not a number                                                |
+| `FormField`          | Generates ids and wires `aria-describedby` / `aria-invalid`                                                    |
+| `FormSection`        | Real `<fieldset>` + `<legend>` grouping                                                                        |
+| `MetadataForm`       | Book metadata with publishing-rule validation                                                                  |
+| `ProjectCard`        | A book in the library; the whole card is a link via a stretched anchor, so the accessible name stays the title |
+| `ManuscriptDropzone` | Drag-and-drop layered over a real `<input type="file">`                                                        |
 
 ---
 
@@ -215,3 +220,8 @@ interfaces that shout transient popups about permanent problems.
    the third call site appears.
 7. **New primitives go in `components/ui` only if they carry no product
    vocabulary.** Otherwise they belong a layer up.
+8. **Drag-and-drop is never the only route.** It is unusable by keyboard and by
+   most assistive technology, so it is layered over a real focusable control —
+   see `ManuscriptDropzone`.
+9. **Forms use `noValidate` with `required` retained**, so the application's
+   own validation messages are the ones users see.

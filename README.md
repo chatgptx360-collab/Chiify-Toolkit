@@ -6,11 +6,12 @@ Chiify Toolkit is a publishing workspace for authors. Version 1 turns Microsoft
 Word (`.docx`) manuscripts into valid EPUB 3 books; later versions grow into a
 complete publishing ecosystem.
 
-> **This repository is at Phase 1 — Foundation.**
-> There is no conversion engine yet, and that is deliberate. Phase 1 delivers
-> the architecture, design system and application shell that every later phase
-> plugs into. What is here is production-quality; what is missing is stated
-> plainly rather than stubbed out.
+> **This repository is at Phase 2 — Workspace.**
+> There is no conversion engine yet, and that is deliberate. Phase 1 delivered
+> the architecture, design system and application shell; Phase 2 adds project
+> management, manuscript upload and validated metadata on top of it. What is
+> here is production-quality; what is missing is stated plainly rather than
+> stubbed out.
 
 ---
 
@@ -30,7 +31,7 @@ complete publishing ecosystem.
 
 ---
 
-## What Phase 1 delivers
+## What is built
 
 | Area                                                                                                                            | Status         |
 | ------------------------------------------------------------------------------------------------------------------------------- | -------------- |
@@ -42,14 +43,22 @@ complete publishing ecosystem.
 | Domain model, conversion-pipeline contract, parser registry, EPUB generator ports                                               | Complete       |
 | Motion vocabulary and animation utilities                                                                                       | Complete       |
 | ESLint + Prettier + typecheck, all green                                                                                        | Complete       |
+| Project management — create, search, delete, local-first storage                                                                | Complete       |
+| Accessible manuscript upload with format and size validation                                                                    | Complete       |
+| Book metadata forms with publishing-rule validation                                                                             | Complete       |
+| Per-project conversion settings, dashboard driven by real data                                                                  | Complete       |
 | DOCX parsing, EPUB generation, validation, preview                                                                              | **Phases 3–5** |
 
-### Deliberate non-goals for this phase
+### Deliberate non-goals so far
 
-No parsing, no generation, no persistence, no authentication. Every screen that
-depends on those is present, honest about what it will do, and built from the
-same components the real feature will use — so Phase 2 adds state to finished
-components rather than designing screens from scratch.
+No parsing, no generation, no authentication. Manuscript _contents_ are not
+stored either — Phase 2 records a file's name, type and size, because nothing
+reads the bytes until the parser exists in Phase 3 and holding tens of megabytes
+per project before then would be a liability rather than a feature. The UI says
+so where it matters.
+
+Every screen that depends on a missing capability is present, honest about what
+it will do, and built from the same components the real feature will use.
 
 You will not find `TODO` comments or placeholder functions in this codebase.
 Where a capability is not built, the _contract_ for it exists (typed interfaces,
@@ -110,13 +119,16 @@ components/
 ├── navigation/             Nav menu, sidebar item, breadcrumb
 ├── cards/                  Composed card patterns (feature card, roadmap card)
 ├── dashboard/              Dashboard-specific presentation (stat card)
-└── forms/                  Accessible form structure (field, section)
+├── projects/               Project library, cards, create/delete dialogs
+├── upload/                 Manuscript dropzone
+└── forms/                  Accessible form structure (field, section, metadata form)
 
 lib/
 ├── types/                  Domain model — the vocabulary of the product
 ├── design/                 Design tokens in TypeScript + motion vocabulary
 ├── config/                 Site constants and the navigation registry
 ├── utils/                  Pure helpers (cn, formatting, slugs, Result)
+├── projects/               Project storage, validation and status rules
 ├── parser/                 Input formats → internal document model  (Phase 3)
 ├── converter/              Pipeline orchestration                   (Phases 3–5)
 └── epub/                   Internal document model → EPUB package   (Phase 4)
@@ -230,8 +242,9 @@ Four layers, each allowed to import only from the layers above it:
 
 ```
 lib/           domain + utilities        ← imports nothing from below
+hooks/         React bindings for lib/   ← may import lib/*; lib/ never imports a hook
 components/ui  primitives                ← may import lib/utils, lib/types
-components/*   patterns and chrome       ← may import components/ui
+components/*   patterns and chrome       ← may import components/ui and hooks
 app/           routes                    ← may import anything
 ```
 
@@ -367,24 +380,29 @@ Accessibility is built in rather than retrofitted in Phase 6:
 Each phase should be **additive**. If a phase needs to restructure what is here,
 that is a signal to re-read this section first.
 
-### Phase 2 — Dashboard, projects, upload, metadata
+### Phase 2 — Dashboard, projects, upload, metadata _(complete)_
 
-- Add routes under `app/(workspace)/`. Register them in
-  `lib/config/navigation.ts` — the sidebar, breadcrumbs and page titles all
-  follow automatically.
-- Model project storage behind a module in `lib/` (e.g. `lib/projects/`) that
-  exposes plain functions. Components consume it through hooks; the storage
-  mechanism (IndexedDB now, an API later) stays swappable.
-- Build forms from `components/forms` in Client Components. The accessible
-  wiring is done; supply state and validation.
-- Replace the dashboard's zero states with real values. `StatCard` already takes
-  pre-formatted strings — format with `lib/utils/format.ts`.
+Delivered as:
+
+- `lib/projects/` — a `ProjectStore` interface with a `localStorage`
+  implementation, publishing-rule validation, and status presentation. Swapping
+  in IndexedDB or an API is a change to one exported constant.
+- `hooks/use-projects.ts` — `useSyncExternalStore` bindings, so no provider is
+  needed and a component re-renders only when the store actually changes.
+- `components/projects/`, `components/upload/` — library, create/delete dialogs,
+  and the accessible dropzone.
+- `lib/parser/formats.ts` — the catalogue of formats the _product_ knows about,
+  separate from the registry of formats that have a working parser. That gap is
+  exactly Phase 2 vs Phase 3.
 
 ### Phase 3 — DOCX parsing
 
 - Add `lib/parser/docx/` implementing the `DocumentParser` interface.
 - Call `registerParser(docxParser)` at module load. The upload UI's accepted
-  file types come from `acceptedExtensions()` and need no change.
+  file types come from `lib/parser/formats.ts` and need no change.
+- Add a blob store alongside `lib/projects/` for manuscript bytes. `SourceFile`
+  already carries everything needed to reference one; the dropzone hands over a
+  real `File`, so nothing in the UI changes.
 - Populate `ParsedDocument` from `lib/types/document.ts`. Do not add visual
   properties to the model — if a generator needs to know something, it is a
   semantic `role`, not a font size.

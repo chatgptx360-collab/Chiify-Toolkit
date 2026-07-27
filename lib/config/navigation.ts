@@ -108,12 +108,28 @@ export function isNavItemActive(item: NavItem, pathname: string): boolean {
 }
 
 /**
+ * Resolves a dynamic path segment to a human label.
+ *
+ * Returning `undefined` falls back to title-casing the segment. This is a
+ * *function* rather than a lookup table because the data needed to name a
+ * segment (a project's title, later a chapter's) lives in a store this module
+ * must not depend on — `lib/config` cannot import `lib/projects` without
+ * inverting the dependency between configuration and domain.
+ */
+export type SegmentLabelResolver = (segment: string, path: string) => string | undefined
+
+/**
  * Build a breadcrumb trail for a pathname.
  *
- * Segments that are not registered routes are title-cased, which is the right
- * default for the ids and slugs later phases will append (`/projects/my-book`).
+ * Registered routes use their navigation label. Unregistered segments — the ids
+ * and slugs of dynamic routes — go through `resolveLabel`, then fall back to
+ * title-casing, which is a reasonable last resort for a slug and an ugly but
+ * honest one for an opaque id.
  */
-export function buildBreadcrumbs(pathname: string): readonly BreadcrumbItem[] {
+export function buildBreadcrumbs(
+  pathname: string,
+  resolveLabel?: SegmentLabelResolver,
+): readonly BreadcrumbItem[] {
   const segments = pathname.split('/').filter(Boolean)
   if (segments.length === 0) return []
 
@@ -126,7 +142,7 @@ export function buildBreadcrumbs(pathname: string): readonly BreadcrumbItem[] {
     const isLast = index === segments.length - 1
 
     crumbs.push({
-      label: known?.label ?? toTitle(segment),
+      label: known?.label ?? resolveLabel?.(segment, accumulated) ?? toTitle(segment),
       ...(isLast ? {} : { href: accumulated as Route }),
     })
   }
