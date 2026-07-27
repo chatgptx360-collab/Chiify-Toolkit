@@ -4,6 +4,8 @@ import { ArrowLeft, FileWarning, Trash2, Wand2 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
+import { DocumentAnalysis } from '@/components/analysis/document-analysis'
+import { MetadataSuggestions } from '@/components/analysis/metadata-suggestions'
 import { EmptyState } from '@/components/common/empty-state'
 import { PageHeader } from '@/components/common/page-header'
 import { Section } from '@/components/common/section'
@@ -13,7 +15,7 @@ import { ProjectStatusBadge } from '@/components/projects/project-status-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { SkeletonCard, SkeletonGroup, SkeletonText } from '@/components/ui/skeleton'
-import { useProject, useProjectsReady, useStableNow } from '@/hooks'
+import { useAnalysis, useMetadata, useProject, useProjectsReady, useStableNow } from '@/hooks'
 import { projectStatusPresentation } from '@/lib/projects'
 import type { ProjectId } from '@/lib/types'
 import { formatDate, formatRelativeTime } from '@/lib/utils'
@@ -38,6 +40,8 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
   const ready = useProjectsReady()
   const now = useStableNow()
   const router = useRouter()
+  const analysis = useAnalysis(projectId as ProjectId)
+  const { suggestions, applyOne, applyAll } = useMetadata(projectId as ProjectId, project)
 
   if (!ready) {
     return (
@@ -123,11 +127,20 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
         <ProjectSource project={project} />
       </Section>
 
+      {analysis ? (
+        <Section title="Analysis" description="What Chiify found when it read your manuscript.">
+          <DocumentAnalysis analysis={analysis} />
+        </Section>
+      ) : null}
+
       <Section
         title="Book metadata"
         description="Written into the EPUB package document and read by every retailer."
       >
-        <MetadataForm project={project} />
+        <div className="space-y-4">
+          <MetadataSuggestions suggestions={suggestions} onApply={applyOne} onApplyAll={applyAll} />
+          <MetadataForm project={project} />
+        </div>
       </Section>
 
       <Section title="Conversion settings" description="How this manuscript is turned into a book.">
@@ -141,8 +154,8 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
           </CardHeader>
           <CardContent className="space-y-1 text-sm text-muted-foreground">
             <p>
-              {project.source
-                ? 'This manuscript is ready to convert. EPUB generation arrives in Phase 4.'
+              {analysis
+                ? 'Your manuscript has been read and structured. EPUB generation arrives in Phase 4.'
                 : 'Upload a manuscript first, then convert it to produce an EPUB.'}
             </p>
             <p className="text-xs text-subtle-foreground">

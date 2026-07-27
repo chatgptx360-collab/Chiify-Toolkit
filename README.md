@@ -6,10 +6,10 @@ Chiify Toolkit is a publishing workspace for authors. Version 1 turns Microsoft
 Word (`.docx`) manuscripts into valid EPUB 3 books; later versions grow into a
 complete publishing ecosystem.
 
-> **This repository is at Phase 2 — Workspace.**
-> There is no conversion engine yet, and that is deliberate. Phase 1 delivered
-> the architecture, design system and application shell; Phase 2 adds project
-> management, manuscript upload and validated metadata on top of it. What is
+> **This repository is at Phase 3 — DOCX parsing.**
+> Chiify now reads a real Word manuscript and produces a complete internal
+> document model: chapters, formatting, images, tables, lists, links and
+> statistics. What is _not_ built yet is EPUB generation (Phase 4). What is
 > here is production-quality; what is missing is stated plainly rather than
 > stubbed out.
 
@@ -44,10 +44,12 @@ complete publishing ecosystem.
 | Motion vocabulary and animation utilities                                                                                       | Complete       |
 | ESLint + Prettier + typecheck, all green                                                                                        | Complete       |
 | Project management — create, search, delete, local-first storage                                                                | Complete       |
+| DOCX parsing into the internal document model                                                                                   | Complete       |
+| Validation, chapter detection with confidence, image extraction, statistics                                                     | Complete       |
 | Accessible manuscript upload with format and size validation                                                                    | Complete       |
 | Book metadata forms with publishing-rule validation                                                                             | Complete       |
 | Per-project conversion settings, dashboard driven by real data                                                                  | Complete       |
-| DOCX parsing, EPUB generation, validation, preview                                                                              | **Phases 3–5** |
+| EPUB generation, in-app preview, specification validation                                                                       | **Phases 4–5** |
 
 ### Deliberate non-goals so far
 
@@ -120,6 +122,7 @@ components/
 ├── cards/                  Composed card patterns (feature card, roadmap card)
 ├── dashboard/              Dashboard-specific presentation (stat card)
 ├── projects/               Project library, cards, create/delete dialogs
+├── analysis/               Statistics, chapter list, metadata suggestions
 ├── upload/                 Manuscript dropzone
 └── forms/                  Accessible form structure (field, section, metadata form)
 
@@ -129,11 +132,17 @@ lib/
 ├── config/                 Site constants and the navigation registry
 ├── utils/                  Pure helpers (cn, formatting, slugs, Result)
 ├── projects/               Project storage, validation and status rules
-├── parser/                 Input formats → internal document model  (Phase 3)
+├── documents/              Session storage for parsed manuscripts
+├── parser/                 Input formats → internal document model
+│   └── docx/               Validator, style map, block converter, normaliser,
+│                           chapter detector, image + metadata extractors,
+│                           statistics — one service per responsibility
 ├── converter/              Pipeline orchestration                   (Phases 3–5)
 └── epub/                   Internal document model → EPUB package   (Phase 4)
 
-hooks/                      Generic, reusable React hooks
+hooks/                      Generic hooks + React bindings for lib/ modules
+fixtures/                   Generated sample .docx manuscripts (+ the generator)
+tests/                      Parser test suite (node:test via tsx)
 styles/                     globals.css — the single source of truth for tokens
 public/                     Files served verbatim at a fixed URL
 assets/                     Design source files, never served (see assets/README.md)
@@ -395,14 +404,28 @@ Delivered as:
   separate from the registry of formats that have a working parser. That gap is
   exactly Phase 2 vs Phase 3.
 
-### Phase 3 — DOCX parsing
+### Phase 3 — DOCX parsing _(complete)_
 
-- Add `lib/parser/docx/` implementing the `DocumentParser` interface.
-- Call `registerParser(docxParser)` at module load. The upload UI's accepted
-  file types come from `lib/parser/formats.ts` and need no change.
-- Add a blob store alongside `lib/projects/` for manuscript bytes. `SourceFile`
-  already carries everything needed to reference one; the dropzone hands over a
-  real `File`, so nothing in the UI changes.
+Delivered as `lib/parser/docx/`, one service per responsibility:
+
+| Service              | Responsibility                                                            |
+| -------------------- | ------------------------------------------------------------------------- |
+| `validator`          | Extension, size, magic bytes, encryption, legacy `.doc`, damaged archives |
+| `style-map`          | Word styles → semantic HTML, via Mammoth                                  |
+| `html-parser`        | Mammoth's HTML → a node tree, without a DOM                               |
+| `html-to-blocks`     | Node tree → internal document model                                       |
+| `normalizer`         | Invisible characters, empty paragraphs, broken links and images           |
+| `chapter-detector`   | Chapter boundaries with fallbacks and a confidence score                  |
+| `image-extractor`    | Bytes, alt text, format, dimensions and DPI                               |
+| `metadata-extractor` | `docProps` → suggestions, never applied silently                          |
+| `statistics`         | Counts, reading time, page estimate, readability band                     |
+
+`parser.ts` orchestrates them and does nothing else; each service is injectable,
+so tests substitute one and keep the rest.
+
+**Nothing in `lib/parser` knows what an EPUB is**, which is the property that
+makes it the universal input layer for every export format on the roadmap.
+
 - Populate `ParsedDocument` from `lib/types/document.ts`. Do not add visual
   properties to the model — if a generator needs to know something, it is a
   semantic `role`, not a font size.
@@ -410,6 +433,9 @@ Delivered as:
 
 ### Phase 4 — EPUB generation
 
+- Consume `ParsedDocument` from `lib/documents`. **Never read a `.docx`** — the
+  parser is the only thing that does, and the whole architecture depends on
+  keeping it that way.
 - Implement `XhtmlGenerator`, `CssGenerator`, `NavigationBuilder`,
   `MetadataGenerator` and `EpubPackager` from `lib/epub/types.ts`.
 - Use the constants in `lib/epub/constants.ts` for container paths, namespaces
@@ -447,6 +473,8 @@ is the registry pattern generalised; **themes** are another token block;
 
 - [`docs/architecture.md`](docs/architecture.md) — module boundaries, data flow,
   and the reasoning behind each decision in more depth.
+- [`docs/parsing.md`](docs/parsing.md) — the DOCX pipeline: every stage, the
+  reasoning behind each decision, and how the fixtures and tests are built.
 - [`docs/design-system.md`](docs/design-system.md) — full token reference,
   component catalogue and usage rules.
 - The live design-system reference is at `/settings` in the running app, rendered

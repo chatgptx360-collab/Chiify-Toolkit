@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowRight, FolderOpen, Wand2 } from 'lucide-react'
+import { ArrowRight, FolderOpen, Loader2, Wand2 } from 'lucide-react'
 import Link from 'next/link'
 import type { Route } from 'next'
 import * as React from 'react'
@@ -14,11 +14,12 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { FormField } from '@/components/forms/form-field'
 import { Select } from '@/components/ui/select'
+import { Progress } from '@/components/ui/progress'
 import { SkeletonCard, SkeletonGroup } from '@/components/ui/skeleton'
 import { useToast } from '@/components/ui/toast'
-import { useProjectActions, useProjects, useProjectsReady } from '@/hooks'
+import { useAnalysis, useProjects, useProjectsReady, useUpload } from '@/hooks'
 import { blockingIssues, validateBookMetadata } from '@/lib/projects'
-import { isoNow } from '@/lib/types'
+import { formatWordCount } from '@/lib/utils'
 
 /**
  * The conversion workspace.
@@ -36,7 +37,6 @@ import { isoNow } from '@/lib/types'
 export function ConversionWorkspace() {
   const projects = useProjects()
   const ready = useProjectsReady()
-  const { update } = useProjectActions()
   const { toast } = useToast()
   const [selectedId, setSelectedId] = React.useState<string>('')
 
@@ -44,6 +44,10 @@ export function ConversionWorkspace() {
   // one the author just came from.
   const activeId = selectedId || projects[0]?.id || ''
   const project = projects.find((candidate) => candidate.id === activeId)
+
+  const { state, upload, cancel } = useUpload(project)
+  const analysis = useAnalysis(project?.id)
+  const busy = state.stage === 'reading' || state.stage === 'parsing'
 
   const metadataErrors = React.useMemo(
     () => (project ? blockingIssues(validateBookMetadata(project.metadata)) : []),
@@ -70,41 +74,34 @@ export function ConversionWorkspace() {
     )
   }
 
-  function handleFile(file: File) {
-    if (!project) return
-
-    const result = update(project.id, {
-      source: {
-        fileName: file.name,
-        mediaType: file.type,
-        byteSize: file.size,
-        uploadedAt: isoNow(),
-      },
-      status: 'ready',
-    })
+  async function handleFile(file: File) {
+    const result = await upload(file)
 
     if (!result.ok) {
-      toast({
-        title: 'Could not attach the file',
-        description: result.error.message,
-        intent: 'danger',
-      })
+      if (result.error.severity !== 'info') {
+        toast({
+          title: result.error.message,
+          ...(result.error.hint ? { description: result.error.hint } : {}),
+          intent: 'danger',
+          duration: 8000,
+        })
+      }
       return
     }
 
     toast({
-      title: 'Manuscript attached',
-      description: `“${file.name}” is ready.`,
+      title: 'Manuscript ready',
+      description: `${result.value.chapters.length} chapters and ${formatWordCount(result.value.stats.wordCount)} found.`,
       intent: 'success',
     })
   }
 
   const blockers = [
-    project?.source ? null : 'Attach a manuscript.',
+    analysis ? null : 'Upload a manuscript so Chiify can read it.',
     metadataErrors.length > 0
       ? `Complete the book metadata (${metadataErrors.length} ${metadataErrors.length === 1 ? 'field needs' : 'fields need'} attention).`
       : null,
-    'The conversion engine arrives in Phases 3 and 4.',
+    'EPUB generation arrives in Phase 4.',
   ].filter((blocker): blocker is string => blocker !== null)
 
   return (
@@ -135,7 +132,40 @@ export function ConversionWorkspace() {
 
         {project ? (
           <CardContent className="space-y-5">
-            <ManuscriptDropzone onFileAccepted={handleFile} selectedFile={project.source} />
+            <ManuscriptDropzone
+              onFileAccepted={handleFile}
+              disabled={busy}
+              selectedFile={project.source}
+            />
+
+            {busy ? (
+              <div className="space-y-2 rounded-lg border border-border bg-surface/60 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="flex items-center gap-2 text-sm font-medium">
+                    <Loader2 className="size-4 animate-spin text-primary" aria-hidden="true" />
+                    {state.stage === 'reading' ? 'Reading the file…' : 'Analysing your manuscript…'}
+                  </p>
+                  <Button variant="ghost" size="sm" onClick={cancel}>
+                    Cancel
+                  </Button>
+                </div>
+                <Progress
+                  value={Math.round(state.progress * 100)}
+                  label="Reading your manuscript"
+                />
+              </div>
+            ) : null}
+
+            {analysis && !busy ? (
+              <div className="grid gap-3 sm:grid-cols-3">
+                {analysis.headline.slice(0, 3).map((metric) => (
+                  <div key={metric.id} className="rounded-lg border border-border p-3">
+                    <p className="text-xs text-muted-foreground">{metric.label}</p>
+                    <p className="mt-0.5 text-sm font-medium tabular-nums">{metric.value}</p>
+                  </div>
+                ))}
+              </div>
+            ) : null}
 
             {metadataErrors.length > 0 ? (
               <Alert intent="warning">

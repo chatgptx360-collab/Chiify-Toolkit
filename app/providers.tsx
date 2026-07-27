@@ -5,6 +5,13 @@ import * as React from 'react'
 
 import { ToastProvider } from '@/components/ui/toast'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { registerBuiltInParsers } from '@/lib/parser'
+
+// Installed at module scope rather than in an effect: the registry must be
+// populated before any component renders an accepted-file-types list or
+// resolves a parser, and `registerBuiltInParsers` is idempotent, so React's
+// development double-render cannot register the DOCX parser twice.
+registerBuiltInParsers()
 
 /**
  * Client provider tree.
