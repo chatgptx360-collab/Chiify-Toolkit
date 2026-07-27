@@ -5,7 +5,35 @@ and validation runs on the reader's own machine. Nothing is uploaded, so there
 is no database, no API and no server-side secret to configure.
 
 That makes the deployment unusually simple — and it means the hosting platform
-is a delivery mechanism rather than part of the product.
+is a delivery mechanism rather than part of the product. The app builds to a
+static export (`output: 'export'`), so anything that serves files can host it.
+
+---
+
+## GitHub Pages (automatic)
+
+`.github/workflows/deploy.yml` builds and publishes on every push to `main` or
+`claude/chiify-toolkit-phase-5`, and can be re-run from the Actions tab. The
+site lands at:
+
+```
+https://chatgptx360-collab.github.io/Chiify-Toolkit/
+```
+
+Nothing to configure: `actions/configure-pages` enables Pages on first run, and
+`actions/deploy-pages` authenticates with a short-lived OIDC token rather than a
+stored secret. There is no deployment credential anywhere in the repository.
+
+The workflow runs `npm run verify` — typecheck, lint, format and the full test
+suite — before it builds. A deploy that publishes a broken site is worse than
+one that fails. This is the only workflow in the repository and it does not run
+on pull requests, so no checks appear there.
+
+**The base path is not hard-coded.** A Pages project site is served from a
+subdirectory, so the workflow passes `base_path` from `configure-pages` into the
+build as `NEXT_PUBLIC_BASE_PATH`. Renaming the repository does not break the
+deployment, and local development is unaffected because the variable is empty
+there.
 
 ---
 
@@ -23,6 +51,9 @@ The shortest path, and the one that keeps deploying itself afterwards.
    - **Environment variables** — none
 3. Choose the branch to treat as production. Until the phase branches are merged
    into `main`, that is `claude/chiify-toolkit-phase-5`.
+
+Vercel serves from the root, so leave `NEXT_PUBLIC_BASE_PATH` unset — the base
+path exists only for GitHub Pages.
 
 Every push to that branch then redeploys, and every pull request gets its own
 preview URL — which is a genuinely useful way to review a phase, since the whole
@@ -59,9 +90,12 @@ Nothing in the application depends on Vercel. `npm run build && npm run start`
 produces a standard Next.js server that runs on Netlify, Render, Fly, a
 container, or a laptop.
 
-The routes are statically prerendered except `/projects/[id]`, which is rendered
-on demand — and even that renders an empty shell, because the project it
-displays lives in the visitor's own browser storage.
+Every route is prerendered to a static file. There is no dynamic route: a single
+project is a _view_ of `/projects` (`?id=…`) rather than a route beneath it,
+because a project id is created in the visitor's browser and is meaningless to
+anyone else. That is what makes the export possible, and it is the more honest
+URL — `/projects/prj_a1b2` looks like a shareable address for a resource and
+is not one.
 
 ---
 

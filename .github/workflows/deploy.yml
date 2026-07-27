@@ -1,0 +1,75 @@
+name: Deploy to GitHub Pages
+
+# Publishing runs on GitHub's runners rather than anywhere else, which is what
+# lets the whole thing work from a push: the build has network access, the
+# artifact never leaves GitHub, and no deployment token has to exist.
+on:
+  push:
+    branches:
+      - main
+      - claude/chiify-toolkit-phase-5
+  # So a deployment can be re-run from the Actions tab without an empty commit.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  # Required by actions/deploy-pages: it authenticates to Pages with a
+  # short-lived OIDC token instead of a stored secret.
+  id-token: write
+
+# Deployments queue rather than cancel each other. A cancelled deploy can leave
+# the site mid-update, and the site is the artifact of record.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # The same gate that runs locally: typecheck, lint, format and 156 tests.
+      # A deploy that publishes a broken build is worse than one that fails, and
+      # this is the only place the checks run automatically — there is
+      # deliberately no pull-request workflow.
+      - name: Verify
+        run: npm run verify
+
+      - name: Configure Pages
+        id: pages
+        uses: actions/configure-pages@v5
+        with:
+          # Turns Pages on for the repository the first time this runs, so the
+          # deployment needs no manual setup.
+          enablement: true
+
+      # A project site is served from a subdirectory, so every asset URL has to
+      # carry it. `base_path` comes from the step above rather than being
+      # written here, which keeps this correct if the repository is renamed.
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_BASE_PATH: ${{ steps.pages.outputs.base_path }}
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

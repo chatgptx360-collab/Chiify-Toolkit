@@ -6,7 +6,6 @@ import * as React from 'react'
 import { Breadcrumb } from '@/components/navigation/breadcrumb'
 import { ThemeToggle } from '@/components/common/theme-toggle'
 import { Button } from '@/components/ui/button'
-import { useProjects } from '@/hooks'
 import { buildBreadcrumbs } from '@/lib/config/navigation'
 import { cn } from '@/lib/utils'
 
@@ -30,19 +29,15 @@ export interface TopbarProps {
 }
 
 export function Topbar({ pathname, onOpenMobileSidebar }: TopbarProps) {
-  const projects = useProjects()
-
-  // The trail is built here, where the project store is reachable, and passed a
-  // resolver so `/projects/prj_a1b2…` reads as `/ Projects / The Long Winter`.
-  // `lib/config` stays free of any domain dependency.
-  const breadcrumbs = React.useMemo(
-    () =>
-      buildBreadcrumbs(
-        pathname,
-        (segment) => projects.find((project) => project.id === segment)?.name,
-      ),
-    [pathname, projects],
-  )
+  // Built from the pathname alone. Every route is now a registered one — a
+  // single project is a *view* of `/projects` rather than a route beneath it —
+  // so there is no opaque segment left to resolve into a name, and the topbar
+  // no longer subscribes to the project store to do it.
+  //
+  // The name is not lost: the detail view's own heading is the project title,
+  // which is where a reader looks for it. `buildBreadcrumbs` keeps its resolver
+  // parameter for the dynamic routes a later phase may add.
+  const breadcrumbs = React.useMemo(() => buildBreadcrumbs(pathname), [pathname])
 
   return (
     <header
