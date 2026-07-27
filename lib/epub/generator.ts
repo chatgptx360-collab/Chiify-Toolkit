@@ -95,6 +95,14 @@ export interface GenerationOutcome {
   readonly epub: EpubPackage
   /** Text resources, kept so validation and preview can read them directly. */
   readonly files: readonly GeneratedFile[]
+  /**
+   * Packaged images.
+   *
+   * Returned for the same reason as `files`: the preview has to display them
+   * and the image inspector has to weigh them, and both would otherwise have to
+   * unzip the artifact to get back bytes this engine already had in memory.
+   */
+  readonly binaries: readonly PackagedBinary[]
   /** Non-fatal observations worth showing the author. */
   readonly notices: readonly AppError[]
 }
@@ -320,7 +328,7 @@ export function createEpubGenerator(): EpubGenerator {
 
       report('done')
 
-      return ok({ artifact: artifact.value, epub, files: writeList, notices })
+      return ok({ artifact: artifact.value, epub, files: writeList, binaries, notices })
     },
   }
 }

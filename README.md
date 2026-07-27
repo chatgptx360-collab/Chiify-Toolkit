@@ -6,12 +6,13 @@ Chiify Toolkit is a publishing workspace for authors. Version 1 turns Microsoft
 Word (`.docx`) manuscripts into valid EPUB 3 books; later versions grow into a
 complete publishing ecosystem.
 
-> **This repository is at Phase 3 — DOCX parsing.**
-> Chiify now reads a real Word manuscript and produces a complete internal
-> document model: chapters, formatting, images, tables, lists, links and
-> statistics. What is _not_ built yet is EPUB generation (Phase 4). What is
-> here is production-quality; what is missing is stated plainly rather than
-> stubbed out.
+> **This repository is at Phase 5 — validation, preview and quality.**
+> Chiify reads a real Word manuscript, produces a complete internal document
+> model, generates a valid EPUB 3 book from it, checks that book against the
+> specification and against what retailers require, scores it, proposes fixes
+> you approve before they are applied, and lets you read it at the screen sizes
+> and reader settings you do not control. What is here is production-quality;
+> what is missing is stated plainly rather than stubbed out.
 
 ---
 
@@ -50,15 +51,27 @@ complete publishing ecosystem.
 | Accessible manuscript upload with format and size validation                                                                    | Complete    |
 | Book metadata forms with publishing-rule validation                                                                             | Complete    |
 | Per-project conversion settings, dashboard driven by real data                                                                  | Complete    |
-| In-app preview, specification validation, quality reports                                                                       | **Phase 5** |
+| In-app reader preview with device sizes and simulated reader settings                                                           | Complete    |
+| Specification, accessibility and retailer validation with calculated quality scores                                             | Complete    |
+| Automatic fix proposals, shown before they are applied                                                                          | Complete    |
+| Exportable reports — printable HTML, JSON, plain text                                                                           | Complete    |
+| Web Worker offloading, IndexedDB persistence, further export formats                                                            | **Phase 6** |
 
 ### Deliberate non-goals so far
 
-No parsing, no generation, no authentication. Manuscript _contents_ are not
-stored either — Phase 2 records a file's name, type and size, because nothing
-reads the bytes until the parser exists in Phase 3 and holding tens of megabytes
-per project before then would be a liability rather than a feature. The UI says
-so where it matters.
+No authentication, no cloud sync, no export format other than EPUB 3.
+
+Parsed manuscripts and generated books are held in memory for the session rather
+than persisted: both are derived data, both hold every image as raw bytes, and
+both are reproducible in seconds from a file the author still has. Persisting
+them would trade a large, fragile cache for a parse that takes under a second.
+Reopening a project asks for the manuscript again, and the UI says so where it
+matters. `lib/documents` and `lib/builds` are the interfaces an IndexedDB store
+would implement in Phase 6, without a component changing.
+
+Validation is Chiify's own, not EPUBCheck's — that is a deliberate consequence
+of being local-first, and it is stated in the report and in every export rather
+than glossed over.
 
 Every screen that depends on a missing capability is present, honest about what
 it will do, and built from the same components the real feature will use.
@@ -142,12 +155,16 @@ lib/
 ├── epub/                   Internal document model → EPUB 3 package
 │                           Asset manager, XHTML + CSS generators, navigation,
 │                           metadata, package document, packager
-├── converter/              Pipeline orchestration                   (Phases 3–5)
-└── epub/                   Internal document model → EPUB package   (Phase 4)
+├── validation/             EPUB package → findings, scores, fixes
+│                           Eight inspectors, quality scoring, auto-fix
+│                           proposals, report export, strict XML scanner
+├── preview/                EPUB package → readable HTML, device profiles
+├── builds/                 The latest generated book and report, per project
+└── converter/              Pipeline orchestration
 
 hooks/                      Generic hooks + React bindings for lib/ modules
 fixtures/                   Generated sample .docx manuscripts (+ the generator)
-tests/                      Parser test suite (node:test via tsx)
+tests/                      Parser, EPUB and validation suites (node:test via tsx)
 styles/                     globals.css — the single source of truth for tokens
 public/                     Files served verbatim at a fixed URL
 assets/                     Design source files, never served (see assets/README.md)
@@ -457,20 +474,33 @@ Delivered as `lib/epub/`, one service per responsibility:
 `.docx`. In the other direction, nothing outside `lib/epub` knows what an OPF
 is: the UI asks for an artifact and receives a `Blob`.
 
-### Phase 5 — Preview, validation, quality reports
+### Phase 5 — Preview, validation, quality reports _(complete)_
 
-- Implement `EpubValidator` from `lib/epub/types.ts` as a **native TypeScript
-  validator**. EPUBCheck is a Java application and cannot run in the browser;
-  this app is local-first with no backend, so the rules are implemented directly.
-  Say so in the UI rather than implying official certification.
-- Work from `GenerationOutcome`, which returns the described package and the
-  generated files alongside the `Blob` — validation and preview need neither to
-  unzip anything nor to re-derive structure.
-- Return the `ValidationReport` shape already defined in
-  `lib/types/validation.ts`, and use `summariseIssues()` for the pass/fail rule
-  rather than re-deriving it.
-- Surface failures through the existing `AppError` shape — `message` is written
-  for an author, `hint` says what to do about it.
+Delivered as `lib/validation/` and `lib/preview/`:
+
+| Service                 | Responsibility                                                        |
+| ----------------------- | --------------------------------------------------------------------- |
+| `xml-scan`              | A strict scanner that collects every markup error instead of throwing |
+| `package-inspector`     | Manifest and files cross-checked in both directions                   |
+| `navigation-inspector`  | Contents integrity, reading order, NCX parity                         |
+| `metadata-inspector`    | The four EPUB 3 requirements plus what retailers demand               |
+| `xhtml-inspector`       | Well-formedness, namespaces, every reference resolved                 |
+| `css-inspector`         | The four ways a stylesheet takes control from a reader                |
+| `image-inspector`       | Weight, formats, unreferenced files, the cover                        |
+| `accessibility-checker` | Alt text, headings, tables, language, schema.org metadata             |
+| `compatibility-checker` | Kindle, Apple Books, Kobo, Google Play, open-source readers           |
+| `quality`               | Scores calculated from findings ÷ checks actually run                 |
+| `auto-fix`              | Proposals — never applications                                        |
+| `report`                | Printable HTML, JSON and plain text export                            |
+| `preview/renderer`      | The real XHTML and CSS, rendered in a sandboxed frame                 |
+
+`engine.ts` orchestrates the inspectors and does nothing else. It implements the
+`EpubValidator` port from `lib/epub/types.ts` as a **native TypeScript
+validator**: EPUBCheck is a Java application, this app is local-first with no
+backend, and the UI says plainly that this is not official certification.
+
+**`lib/validation` reads an EPUB package; `lib/epub` has never heard of it.** A
+change to a rule can never change the bytes of a book.
 
 ### Phase 6 — Performance, testing, accessibility, refinement
 
@@ -497,6 +527,9 @@ is the registry pattern generalised; **themes** are another token block;
 - [`docs/epub-generation.md`](docs/epub-generation.md) — the EPUB 3 engine: the
   package it produces, the specification rules that break books when ignored,
   and why the stylesheet is deliberately restrained.
+- [`docs/validation.md`](docs/validation.md) — the validation engine, how scores
+  are calculated, why nothing is fixed without being shown first, and how the
+  preview renders the real book.
 - [`docs/design-system.md`](docs/design-system.md) — full token reference,
   component catalogue and usage rules.
 - The live design-system reference is at `/settings` in the running app, rendered

@@ -2,8 +2,9 @@
 
 import * as React from 'react'
 
+import { buildStore } from '@/lib/builds'
 import { createEpubGenerator, type GenerationOutcome, type GenerationStage } from '@/lib/epub'
-import type { Project } from '@/lib/types'
+import { isoNow, type Project } from '@/lib/types'
 import type { AppError } from '@/lib/utils'
 
 import { useDocument } from './use-document'
@@ -69,6 +70,10 @@ export function useEpub(project: Project | undefined): UseEpubResult {
   if (lastDocumentRef.current !== documentId) {
     lastDocumentRef.current = documentId
     if (state.status !== 'idle') setState(IDLE)
+    // The stored build describes the previous manuscript, so the preview and
+    // the validation report must go with it rather than describe a book the
+    // author can no longer download.
+    if (project) buildStore.remove(project.id)
   }
 
   const cancel = React.useCallback(() => {
@@ -112,6 +117,15 @@ export function useEpub(project: Project | undefined): UseEpubResult {
       update_({ status: 'error', progress: 0, error: result.error })
       return
     }
+
+    // Published to the build store before the local state, so the preview and
+    // validation screens are ready the instant the converter says it is done.
+    buildStore.set({
+      projectId: project.id,
+      documentId: document.id,
+      builtAt: isoNow(),
+      outcome: result.value,
+    })
 
     update(project.id, { status: 'converted' })
     update_({ status: 'ready', progress: 1, outcome: result.value })
