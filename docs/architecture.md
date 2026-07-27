@@ -142,10 +142,12 @@ domain outcomes.
 ```
 lib/types      ← the vocabulary. Imported by everything, imports nothing.
 lib/utils      ← pure helpers. May import lib/types.
+lib/projects   ← workspace domain. May import types + utils. Never parser/epub.
 lib/parser     ← input → model.   May import types + utils. Never epub/converter.
 lib/epub       ← model → output.  May import types + utils. Never parser.
 lib/converter  ← orchestration.   May import types + utils. Knows about neither.
-components/*   ← presentation.    May import lib/types + lib/utils only.
+hooks/*        ← React bindings.  May import lib/*. Nothing in lib/ imports a hook.
+components/*   ← presentation.    May import lib/types, lib/utils and hooks.
 app/*          ← routes.          May import anything.
 ```
 
@@ -187,6 +189,37 @@ configuration.
 
 ---
 
+## 6b. Local-first storage
+
+`lib/projects/store.ts` defines a `ProjectStore` interface with a `localStorage`
+implementation behind it.
+
+**Why an interface for one implementation.** A manuscript never has to leave the
+author's machine — that is a privacy position and the reason the app works
+offline. But "Cloud Sync" and "User Accounts" are on the roadmap, so the storage
+mechanism must be replaceable. Components never import an implementation; they
+use the hooks in `hooks/use-projects.ts`. Moving to IndexedDB or a server is a
+change to the one line that constructs the singleton.
+
+**Why `localStorage` rather than IndexedDB today.** Project records are small
+JSON documents. IndexedDB's asynchronous, transactional API earns its complexity
+when storing manuscript _bytes_ — a Phase 3 concern that will use a separate
+blob store. Using the simpler API for the simpler data keeps this layer
+readable.
+
+**Why the store is an observable.** It notifies subscribers on every write, so
+`useSyncExternalStore` drives the UI directly. A `ProjectsProvider` at the root
+would re-render every consumer — including the shell — whenever any project
+changed. Subscribing per component means a card re-renders only when the data it
+reads actually changes, and there is no provider to forget to mount.
+
+**Why `list()` returns a cached array.** A snapshot function that builds a fresh
+array on every call makes `useSyncExternalStore` loop forever, because React
+compares snapshots by identity. The cache is invalidated on write and on a
+cross-tab `storage` event.
+
+---
+
 ## 7. Rendering strategy
 
 ### Server Components by default
@@ -214,6 +247,23 @@ render prop. Functions cannot cross the server/client boundary, so **forms live
 in Client Components**. This is not a limitation to work around — forms are
 interactive by definition, and the rule keeps data fetching and metadata on the
 server while only the interactive parts ship JavaScript.
+
+Forms set `noValidate` and keep `required` on each control. The attribute still
+tells assistive technology the field is required; `noValidate` stops the
+browser's native error bubble from intercepting submit, which would prevent the
+application's own validation from ever running and replace considered messages
+with an unstyled tooltip.
+
+### When a change saves
+
+Two rules, applied consistently rather than case by case:
+
+- **Independent and reversible → save immediately.** Project settings, the
+  theme. A toggle cannot leave the record half-valid, so a Save button is
+  ceremony.
+- **Interdependent or validated → commit on submit.** Book metadata. The fields
+  are only coherent together, and auto-saving a half-typed ISBN would make the
+  validation report flicker as someone types.
 
 ### Hydration-sensitive state
 

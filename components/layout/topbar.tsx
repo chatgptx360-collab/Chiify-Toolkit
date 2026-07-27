@@ -6,6 +6,7 @@ import * as React from 'react'
 import { Breadcrumb } from '@/components/navigation/breadcrumb'
 import { ThemeToggle } from '@/components/common/theme-toggle'
 import { Button } from '@/components/ui/button'
+import { useProjects } from '@/hooks'
 import { buildBreadcrumbs } from '@/lib/config/navigation'
 import { cn } from '@/lib/utils'
 
@@ -29,7 +30,19 @@ export interface TopbarProps {
 }
 
 export function Topbar({ pathname, onOpenMobileSidebar }: TopbarProps) {
-  const breadcrumbs = React.useMemo(() => buildBreadcrumbs(pathname), [pathname])
+  const projects = useProjects()
+
+  // The trail is built here, where the project store is reachable, and passed a
+  // resolver so `/projects/prj_a1b2…` reads as `/ Projects / The Long Winter`.
+  // `lib/config` stays free of any domain dependency.
+  const breadcrumbs = React.useMemo(
+    () =>
+      buildBreadcrumbs(
+        pathname,
+        (segment) => projects.find((project) => project.id === segment)?.name,
+      ),
+    [pathname, projects],
+  )
 
   return (
     <header

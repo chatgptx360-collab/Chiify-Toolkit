@@ -14,8 +14,8 @@ export const siteConfig = {
   url: 'https://chiify.app',
   locale: 'en-GB',
   /** Shown in the sidebar footer so users can report against a known build. */
-  version: '0.1.0',
-  phase: 'Foundation',
+  version: '0.2.0',
+  phase: 'Workspace',
 } as const
 
 export type SiteConfig = typeof siteConfig

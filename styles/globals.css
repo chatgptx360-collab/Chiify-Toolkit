@@ -124,6 +124,12 @@
   --info: var(--brand-blue-500);
   --info-subtle: rgb(59 130 246 / 0.14);
 
+  /* The raised knob of a switch. White in both themes — it reads as a physical
+     object above the track, so unlike every other surface it does not invert.
+     A token rather than a literal `bg-white` so the rule "no hex in a
+     component" holds without exception. */
+  --switch-knob: var(--neutral-0);
+
   /* Elevation — softer, wider shadows read as "premium" on dark surfaces. */
   --elevation-xs: 0 1px 2px 0 rgb(0 0 0 / 0.4);
   --elevation-sm: 0 1px 3px 0 rgb(0 0 0 / 0.45), 0 1px 2px -1px rgb(0 0 0 / 0.4);
@@ -281,6 +287,8 @@
 
   --color-info: var(--info);
   --color-info-subtle: var(--info-subtle);
+
+  --color-switch-knob: var(--switch-knob);
 
   /* Radius scale */
   --radius-xs: calc(var(--radius) - 6px);
