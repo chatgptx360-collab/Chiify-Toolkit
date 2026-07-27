@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# The workspace itself carries no public content worth indexing beyond the
+# entry point; marketing routes added in a later phase will extend this file.
