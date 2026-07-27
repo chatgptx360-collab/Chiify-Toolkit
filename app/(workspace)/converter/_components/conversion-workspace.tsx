@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowRight, FolderOpen, Loader2, Wand2 } from 'lucide-react'
+import { ArrowRight, FolderOpen, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import type { Route } from 'next'
 import * as React from 'react'
@@ -17,7 +17,8 @@ import { Select } from '@/components/ui/select'
 import { Progress } from '@/components/ui/progress'
 import { SkeletonCard, SkeletonGroup } from '@/components/ui/skeleton'
 import { useToast } from '@/components/ui/toast'
-import { useAnalysis, useProjects, useProjectsReady, useUpload } from '@/hooks'
+import { GenerationPanel } from '@/components/epub/generation-panel'
+import { useAnalysis, useEpub, useProjects, useProjectsReady, useUpload } from '@/hooks'
 import { blockingIssues, validateBookMetadata } from '@/lib/projects'
 import { formatWordCount } from '@/lib/utils'
 
@@ -47,6 +48,7 @@ export function ConversionWorkspace() {
 
   const { state, upload, cancel } = useUpload(project)
   const analysis = useAnalysis(project?.id)
+  const epub = useEpub(project)
   const busy = state.stage === 'reading' || state.stage === 'parsing'
 
   const metadataErrors = React.useMemo(
@@ -101,7 +103,6 @@ export function ConversionWorkspace() {
     metadataErrors.length > 0
       ? `Complete the book metadata (${metadataErrors.length} ${metadataErrors.length === 1 ? 'field needs' : 'fields need'} attention).`
       : null,
-    'EPUB generation arrives in Phase 4.',
   ].filter((blocker): blocker is string => blocker !== null)
 
   return (
@@ -186,20 +187,8 @@ export function ConversionWorkspace() {
               </Alert>
             ) : null}
 
-            <div className="flex flex-col gap-3 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="space-y-1">
-                <p className="text-sm font-medium">Not ready to convert</p>
-                <ul className="space-y-0.5 text-xs text-muted-foreground">
-                  {blockers.map((blocker) => (
-                    <li key={blocker}>· {blocker}</li>
-                  ))}
-                </ul>
-              </div>
-
-              <Button variant="primary" disabled className="shrink-0">
-                <Wand2 aria-hidden="true" />
-                Convert to EPUB
-              </Button>
+            <div className="border-t border-border pt-5">
+              <GenerationPanel epub={epub} blockers={blockers} />
             </div>
           </CardContent>
         ) : null}

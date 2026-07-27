@@ -102,15 +102,14 @@ export default function ConverterPage() {
       <PageHeader
         title="Converter"
         description="Upload a Microsoft Word manuscript and get a valid, retailer-ready EPUB 3 book."
-        badge={{ label: 'Phase 3 – 4', intent: 'neutral' }}
+        badge={{ label: 'EPUB 3', intent: 'success' }}
       />
 
       <Alert intent="info">
-        <AlertTitle>Upload works; the conversion engine does not exist yet</AlertTitle>
+        <AlertTitle>Conversion works end to end</AlertTitle>
         <AlertDescription>
-          You can attach a manuscript to a project today. Reading it is the parsing engine&rsquo;s
-          job in Phase 3, and building the EPUB is Phase 4 — both plug into the pipeline stages
-          listed below without changing this screen.
+          Upload a Word manuscript and Chiify reads it, structures it and builds a valid EPUB 3 book
+          you can download. Specification validation and an in-app reader arrive in Phase 5.
         </AlertDescription>
       </Alert>
 

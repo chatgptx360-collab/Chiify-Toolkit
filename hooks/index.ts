@@ -22,6 +22,7 @@ export {
   type ProjectActions,
 } from './use-projects'
 export { useStableNow } from './use-stable-now'
+export { useEpub, type EpubState, type UseEpubResult } from './use-epub'
 export { useAnalysis, type AnalysisMetric, type AnalysisSummary } from './use-analysis'
 export { useDocument, useDocumentActions, type DocumentActions } from './use-document'
 export { useMetadata, type MetadataSuggestion, type UseMetadataResult } from './use-metadata'
