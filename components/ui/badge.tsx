@@ -44,24 +44,28 @@ const badgeVariants = cva(
       {
         tone: 'subtle',
         intent: 'primary',
-        class: 'border-transparent bg-primary-subtle text-primary',
+        class: 'border-transparent bg-primary-subtle text-primary-on-subtle',
       },
       {
         tone: 'subtle',
         intent: 'success',
-        class: 'border-transparent bg-success-subtle text-success',
+        class: 'border-transparent bg-success-subtle text-success-on-subtle',
       },
       {
         tone: 'subtle',
         intent: 'warning',
-        class: 'border-transparent bg-warning-subtle text-warning',
+        class: 'border-transparent bg-warning-subtle text-warning-on-subtle',
       },
       {
         tone: 'subtle',
         intent: 'danger',
-        class: 'border-transparent bg-danger-subtle text-danger',
+        class: 'border-transparent bg-danger-subtle text-danger-on-subtle',
       },
-      { tone: 'subtle', intent: 'info', class: 'border-transparent bg-info-subtle text-info' },
+      {
+        tone: 'subtle',
+        intent: 'info',
+        class: 'border-transparent bg-info-subtle text-info-on-subtle',
+      },
 
       { tone: 'solid', intent: 'neutral', class: 'bg-foreground text-background' },
       { tone: 'solid', intent: 'primary', class: 'bg-primary text-primary-foreground' },

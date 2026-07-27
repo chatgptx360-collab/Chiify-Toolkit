@@ -3,6 +3,8 @@
 import { RefreshCw, TriangleAlert } from 'lucide-react'
 import * as React from 'react'
 
+import { logger } from '@/lib/logging'
+
 import { EmptyState } from '@/components/common/empty-state'
 import { Button } from '@/components/ui/button'
 
@@ -26,9 +28,12 @@ export default function GlobalError({
   reset: () => void
 }) {
   React.useEffect(() => {
-    // Phase 6 replaces this with real error reporting. Logging to the console
-    // in the meantime keeps failures visible in development instead of silent.
-    console.error('Unhandled route error:', error)
+    // Through the logger rather than straight to the console: a route error
+    // carries whatever the failing screen was working on, which in this
+    // application means the visitor's own manuscript. The logger keeps errors
+    // in production — a browser console is where a bug report comes from — but
+    // routes them through one place that can later become real reporting.
+    logger.error('unhandled route error', error.message, error.digest ?? '')
   }, [error])
 
   return (

@@ -56,7 +56,7 @@ export function FixDialog({ proposal, onOpenChange, onConfirm }: FixDialogProps)
                     {proposal.before}
                   </span>
                   <ArrowRight className="size-4 text-subtle-foreground" aria-hidden="true" />
-                  <span className="rounded-md bg-success-subtle px-2 py-1 font-medium text-success">
+                  <span className="rounded-md bg-success-subtle px-2 py-1 font-medium text-success-on-subtle">
                     {proposal.after}
                   </span>
                 </div>

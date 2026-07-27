@@ -41,7 +41,7 @@ export function ChapterList({ chapters, currentHref, onSelect }: ChapterListProp
                 className={cn(
                   'flex w-full items-baseline gap-2 rounded-md px-2.5 py-1.5 text-left text-sm focus-ring motion-fast',
                   current
-                    ? 'bg-primary-subtle font-medium text-primary'
+                    ? 'bg-primary-subtle font-medium text-primary-on-subtle'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                 )}
               >
