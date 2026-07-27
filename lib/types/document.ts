@@ -35,6 +35,14 @@ export interface TextRun {
   readonly href?: string
   /** Superscript/subscript, used heavily by footnote markers. */
   readonly script?: 'super' | 'sub'
+  /**
+   * A hard line break follows this run.
+   *
+   * Modelled as a property of a run rather than as a block, because a break
+   * inside a stanza of poetry or an address is *within* a paragraph — splitting
+   * the paragraph would change its meaning and its styling.
+   */
+  readonly breakAfter?: boolean
 }
 
 export type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6
@@ -43,6 +51,14 @@ export type BlockAlignment = 'start' | 'center' | 'end' | 'justify'
 
 interface BlockBase {
   readonly id: string
+  /**
+   * Bookmark names that target this block.
+   *
+   * Word bookmarks are link destinations, so they are recorded on the block
+   * they point at rather than as content of their own. Generators emit them as
+   * `id` attributes; a format with no anchor concept simply ignores them.
+   */
+  readonly anchors?: readonly string[]
 }
 
 export interface HeadingBlock extends BlockBase {
@@ -169,32 +185,151 @@ export interface Chapter {
 /** A binary resource referenced by the document (images today, fonts later). */
 export interface DocumentAsset {
   readonly id: AssetId
+  /** Safe, collision-free name assigned during extraction. */
   readonly fileName: string
   readonly mediaType: string
   readonly byteSize: number
+  /** Pixel dimensions, read from the image header where the format exposes them. */
   readonly width?: number
   readonly height?: number
+  /** Dots per inch, when the format records it. Used to warn about print quality. */
+  readonly dpi?: number
+  /**
+   * The image itself.
+   *
+   * Held as an `ArrayBuffer` so the model stays structured-cloneable — it can
+   * cross a Web Worker boundary intact, which is what lets Phase 6 move parsing
+   * off the main thread without changing this type. Export engines read these
+   * bytes directly; nothing needs to go back to the source file.
+   */
+  readonly bytes: ArrayBuffer
 }
 
 /**
- * The parsed manuscript.
+ * How a chapter boundary was identified.
  *
- * Note the absence of publishing metadata (title, author, ISBN): that is
- * `BookMetadata` on the project, because it is authored by the user and must
- * survive re-parsing the source file.
+ * Recorded because the fallbacks are guesses, and an author who can see *why*
+ * the book was split the way it was can correct their manuscript rather than
+ * fighting the tool. Ordered from most to least reliable.
  */
-export interface ParsedDocument {
-  readonly id: DocumentId
-  readonly sourceFileName: string
-  readonly chapters: readonly Chapter[]
-  readonly assets: readonly DocumentAsset[]
-  readonly stats: DocumentStats
+export type ChapterStrategy =
+  /** A real `Heading 1` (or the configured level). Unambiguous. */
+  | 'heading'
+  /** An explicit page break between sections. */
+  | 'pageBreak'
+  /** A lower heading level, used when the configured level never appears. */
+  | 'headingFallback'
+  /** A short, bold, standalone paragraph that reads like a title. */
+  | 'titleHeuristic'
+  /** No structure found; the manuscript is one chapter. */
+  | 'single'
+
+export interface ChapterDetectionResult {
+  readonly strategy: ChapterStrategy
+  /**
+   * 0–1. How much the parser trusts the split.
+   *
+   * A number, not a boolean, because "we found headings but only two of them
+   * in 400 pages" is neither success nor failure — it is a result the UI should
+   * show with a caveat.
+   */
+  readonly confidence: number
+  readonly chapterCount: number
+  /** Human-readable justification, shown in the analysis screen. */
+  readonly reason: string
+}
+
+/**
+ * Metadata found *inside* the source document.
+ *
+ * Kept separate from `BookMetadata` (which the author owns) so re-parsing can
+ * suggest values without silently overwriting anything typed by hand. The UI
+ * offers these as prefills; the author decides.
+ */
+export interface EmbeddedMetadata {
+  readonly title?: string
+  readonly subtitle?: string
+  readonly authors?: readonly string[]
+  readonly description?: string
+  readonly publisher?: string
+  readonly language?: string
+  readonly keywords?: readonly string[]
+  readonly createdAt?: string
+  readonly modifiedAt?: string
+}
+
+/**
+ * A rough readability band.
+ *
+ * Deliberately a coarse label rather than a precise index: readability formulas
+ * are approximations calibrated on English prose, and presenting "Flesch 62.4"
+ * implies a precision the input does not support. Authors want to know whether
+ * their prose reads long, not a decimal.
+ */
+export type ReadingComplexity = 'simple' | 'moderate' | 'complex'
+
+/** Per-chapter extremes, referenced by id so the UI can link to them. */
+export interface ChapterExtreme {
+  readonly chapterId: ChapterId
+  readonly title: string
+  readonly wordCount: number
 }
 
 export interface DocumentStats {
   readonly wordCount: number
   readonly characterCount: number
+  readonly paragraphCount: number
+  readonly headingCount: number
   readonly chapterCount: number
   readonly imageCount: number
+  readonly tableCount: number
+  readonly listCount: number
+  readonly footnoteCount: number
+  readonly linkCount: number
+  /** Minutes, at a typical adult silent-reading pace. */
   readonly estimatedReadingMinutes: number
+  /** Printed pages at a conventional trade-paperback density. */
+  readonly estimatedPageCount: number
+  readonly averageParagraphLength: number
+  readonly averageSentenceLength: number
+  readonly longestChapter?: ChapterExtreme
+  readonly shortestChapter?: ChapterExtreme
+  readonly readingComplexity: ReadingComplexity
+}
+
+/**
+ * The parsed manuscript.
+ *
+ * Note the absence of publishing metadata the *author* owns (title, ISBN):
+ * that is `BookMetadata` on the project, so re-parsing a corrected manuscript
+ * cannot discard it. What the document itself declared is offered separately as
+ * `embeddedMetadata`.
+ */
+export interface ParsedDocument {
+  readonly id: DocumentId
+  readonly sourceFileName: string
+  readonly parsedAt: string
+  readonly chapters: readonly Chapter[]
+  readonly assets: readonly DocumentAsset[]
+  readonly stats: DocumentStats
+  readonly detection: ChapterDetectionResult
+  readonly embeddedMetadata: EmbeddedMetadata
+  /**
+   * Non-fatal problems found while parsing.
+   *
+   * A manuscript with an unreadable image still converts; the author needs to
+   * know which image, not a failed conversion. Fatal problems are returned as
+   * an `err` instead and never reach this field.
+   */
+  readonly notices: readonly ParseNotice[]
+}
+
+/** A non-fatal parsing problem, shaped for direct display. */
+export interface ParseNotice {
+  readonly code: string
+  readonly message: string
+  readonly severity: 'info' | 'warning'
+  /** Where it happened, e.g. a chapter title or image filename. */
+  readonly source?: string
+  readonly hint?: string
 }

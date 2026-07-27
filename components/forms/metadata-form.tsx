@@ -79,6 +79,28 @@ export function MetadataForm({ project }: MetadataFormProps) {
     formatAuthors(project.metadata.authors),
   )
   const [submitted, setSubmitted] = React.useState(false)
+  const [dirty, setDirty] = React.useState(false)
+
+  /**
+   * Re-sync the draft when the project's metadata changes underneath us.
+   *
+   * Applying a suggestion from the parsed document writes straight to the
+   * project. Without this, the form would keep showing its original draft and
+   * the next save would quietly overwrite the value the author had just
+   * accepted — the field would appear to revert on its own.
+   *
+   * `dirty` guards it: once the author has typed, their in-progress edits win
+   * over an external change. Adjusting state during render (rather than in an
+   * effect) is React's documented pattern for deriving state from a changed
+   * prop, and avoids rendering the stale value for a frame first.
+   */
+  const [syncedMetadata, setSyncedMetadata] = React.useState(project.metadata)
+
+  if (project.metadata !== syncedMetadata && !dirty) {
+    setSyncedMetadata(project.metadata)
+    setDraft(project.metadata)
+    setAuthorsText(formatAuthors(project.metadata.authors))
+  }
 
   const issues = React.useMemo(() => validateBookMetadata(draft), [draft])
   const fieldIssues = React.useMemo(
@@ -100,6 +122,7 @@ export function MetadataForm({ project }: MetadataFormProps) {
    * save.
    */
   function set<TKey extends keyof BookMetadata>(key: TKey, value: BookMetadata[TKey]) {
+    setDirty(true)
     setDraft((current) => {
       const next: Record<string, unknown> = { ...current }
       if (value === undefined) delete next[key]
@@ -129,6 +152,10 @@ export function MetadataForm({ project }: MetadataFormProps) {
       return
     }
 
+    // Saved: the draft and the project now agree, so an external change may
+    // sync again.
+    setDirty(false)
+    setSyncedMetadata(result.value.metadata)
     toast({ title: 'Metadata saved', intent: 'success' })
   }
 
@@ -187,6 +214,7 @@ export function MetadataForm({ project }: MetadataFormProps) {
               {...field}
               value={authorsText}
               onChange={(event) => {
+                setDirty(true)
                 setAuthorsText(event.target.value)
                 set('authors', parseAuthors(event.target.value))
               }}

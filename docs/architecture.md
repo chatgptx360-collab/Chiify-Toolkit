@@ -143,6 +143,7 @@ domain outcomes.
 lib/types      ← the vocabulary. Imported by everything, imports nothing.
 lib/utils      ← pure helpers. May import lib/types.
 lib/projects   ← workspace domain. May import types + utils. Never parser/epub.
+lib/documents  ← session store for parsed models. May import types only.
 lib/parser     ← input → model.   May import types + utils. Never epub/converter.
 lib/epub       ← model → output.  May import types + utils. Never parser.
 lib/converter  ← orchestration.   May import types + utils. Knows about neither.
