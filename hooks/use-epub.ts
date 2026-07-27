@@ -3,7 +3,8 @@
 import * as React from 'react'
 
 import { buildStore } from '@/lib/builds'
-import { createEpubGenerator, type GenerationOutcome, type GenerationStage } from '@/lib/epub'
+import type { GenerationOutcome, GenerationStage } from '@/lib/epub'
+import { runGenerate, type WorkerJob } from '@/lib/workers'
 import { isoNow, type Project } from '@/lib/types'
 import type { AppError } from '@/lib/utils'
 
@@ -47,13 +48,13 @@ export function useEpub(project: Project | undefined): UseEpubResult {
   const document = useDocument(project?.id)
   const { update } = useProjectActions()
   const [state, setState] = React.useState<EpubState>(IDLE)
-  const controllerRef = React.useRef<AbortController | null>(null)
+  const jobRef = React.useRef<WorkerJob<GenerationOutcome> | null>(null)
 
   const mountedRef = React.useRef(true)
   React.useEffect(
     () => () => {
       mountedRef.current = false
-      controllerRef.current?.abort()
+      jobRef.current?.cancel()
     },
     [],
   )
@@ -77,8 +78,8 @@ export function useEpub(project: Project | undefined): UseEpubResult {
   }
 
   const cancel = React.useCallback(() => {
-    controllerRef.current?.abort()
-    controllerRef.current = null
+    jobRef.current?.cancel()
+    jobRef.current = null
     update_(IDLE)
   }, [update_])
 
@@ -87,28 +88,34 @@ export function useEpub(project: Project | undefined): UseEpubResult {
   const generate = React.useCallback(async () => {
     if (!project || !document) return
 
-    controllerRef.current?.abort()
-    const controller = new AbortController()
-    controllerRef.current = controller
+    jobRef.current?.cancel()
 
     update_({ status: 'generating', progress: 0, stage: 'preparing' })
     update(project.id, { status: 'converting' })
 
-    const result = await createEpubGenerator().generate(
+    // Built in a worker: packaging an illustrated book takes seconds, and on
+    // the main thread those are seconds the progress bar cannot repaint in.
+    const job = runGenerate(
       { document, metadata: project.metadata, settings: project.settings },
-      {
-        signal: controller.signal,
-        onProgress: (progress) =>
-          update_({
-            status: 'generating',
-            stage: progress.stage,
-            label: progress.label,
-            progress: progress.ratio,
-          }),
-      },
+      (progress) =>
+        update_({
+          status: 'generating',
+          ...(progress.stage ? { stage: progress.stage as GenerationStage } : {}),
+          ...(progress.label ? { label: progress.label } : {}),
+          progress: progress.ratio,
+        }),
     )
 
-    controllerRef.current = null
+    jobRef.current = job
+
+    const result = await job.promise
+
+    // A cancellation replaces the job, so a stale one must not report over it.
+    if (jobRef.current !== job) {
+      return
+    }
+
+    jobRef.current = null
 
     if (!result.ok) {
       // A cancellation is not a failure: the project goes back to ready, not

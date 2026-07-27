@@ -1,6 +1,7 @@
 import { defaultBookMetadata, defaultProjectSettings } from '../types/project'
 import type { BookMetadata, Project, ProjectSettings, SourceFile } from '../types/project'
 import { isoNow, type ProjectId } from '../types/common'
+import { logger } from '../logging'
 import { appError, err, ok, type Result } from '../utils/result'
 import { createId } from '../utils/slug'
 
@@ -88,25 +89,72 @@ function readState(): StoredState {
     }
 
     return parsed as StoredState
-  } catch {
+  } catch (cause) {
     // Corrupt or inaccessible storage must not take the app down. An empty
-    // library is recoverable; a white screen is not.
+    // library is recoverable; a white screen is not. Logged rather than
+    // swallowed, because "you have no projects" and "your projects could not be
+    // read" look identical on screen and are not the same event.
+    logger.warn('reading projects from storage failed; starting empty', cause)
     return { projects: [] }
   }
 }
 
+/**
+ * Persist, distinguishing the two ways this fails.
+ *
+ * "Your changes could not be saved" is true of both and useful for neither.
+ * They have different causes and different remedies, and an author who is told
+ * to check their privacy settings when the real problem is a full disk will
+ * check their privacy settings.
+ */
 function writeState(state: StoredState): Result<void> {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
     return ok(undefined)
   } catch (cause) {
+    logger.error('writing projects to storage failed', cause)
+
+    if (isQuotaExceeded(cause)) {
+      return err(
+        appError('projects.storage-full', 'There is no room left to save your projects.', {
+          hint: 'Your browser limits how much each site may store. Deleting projects you have finished with frees space — the EPUBs you already downloaded are unaffected.',
+          cause,
+        }),
+      )
+    }
+
     return err(
-      appError('projects.storage-write-failed', 'Your changes could not be saved.', {
-        hint: 'Browser storage may be full or disabled. Check your privacy settings and try again.',
-        cause,
-      }),
+      appError(
+        'projects.storage-unavailable',
+        'Your browser is not letting Chiify save anything.',
+        {
+          hint: 'This is usually private browsing, or a setting that blocks site data. Your work is safe for this visit but will be lost when you close the tab, so download anything you need before then.',
+          cause,
+        },
+      ),
     )
   }
+}
+
+/**
+ * Whether a storage failure was a full quota.
+ *
+ * The name and the code are both checked: Firefox reports
+ * `NS_ERROR_DOM_QUOTA_REACHED` with code 1014, Safari in private mode throws a
+ * `QuotaExceededError` with no room at all, and the standard name is what
+ * everything else uses.
+ */
+function isQuotaExceeded(cause: unknown): boolean {
+  if (!(cause instanceof Error)) return false
+
+  const code = (cause as { code?: number }).code
+
+  return (
+    cause.name === 'QuotaExceededError' ||
+    cause.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
+    code === 22 ||
+    code === 1014
+  )
 }
 
 function mergeMetadata(base: BookMetadata, changes: Partial<BookMetadata>): BookMetadata {

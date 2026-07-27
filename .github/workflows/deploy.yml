@@ -7,7 +7,6 @@ on:
   push:
     branches:
       - main
-      - claude/chiify-toolkit-phase-5
   # So a deployment can be re-run from the Actions tab without an empty commit.
   workflow_dispatch:
 

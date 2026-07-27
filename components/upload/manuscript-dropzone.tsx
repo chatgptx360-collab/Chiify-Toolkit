@@ -5,7 +5,9 @@ import * as React from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { fileInputAccept, identifyFormat, supportedExtensionList } from '@/lib/parser'
+// From the catalogue module directly, not the `lib/parser` barrel: the barrel
+// re-exports the registry, which pulls mammoth into whatever imports it.
+import { fileInputAccept, identifyFormat, supportedExtensionList } from '@/lib/parser/formats'
 import { appError, cn, formatFileSize, type AppError } from '@/lib/utils'
 
 /**

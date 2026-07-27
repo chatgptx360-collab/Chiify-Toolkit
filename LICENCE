@@ -1,0 +1,15 @@
+Copyright (c) 2026 the Chiify Toolkit authors
+
+All rights reserved.
+
+A licence has not yet been chosen for this project. Until one is added here, no
+permission is granted to use, copy, modify or distribute this software.
+
+If you are evaluating Chiify Toolkit and need a licence in place, open an issue
+and say what you need — this placeholder exists because picking a licence is a
+decision the project's owner should make deliberately, not because the intent is
+to withhold one.
+
+Third-party dependencies are licensed by their own authors under their own
+terms; see each package in `node_modules` for details. The direct dependencies
+are MIT or BSD licensed at the versions pinned in `package-lock.json`.

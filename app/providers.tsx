@@ -5,13 +5,18 @@ import * as React from 'react'
 
 import { ToastProvider } from '@/components/ui/toast'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { registerBuiltInParsers } from '@/lib/parser'
 
-// Installed at module scope rather than in an effect: the registry must be
-// populated before any component renders an accepted-file-types list or
-// resolves a parser, and `registerBuiltInParsers` is idempotent, so React's
-// development double-render cannot register the DOCX parser twice.
-registerBuiltInParsers()
+// The parser registry is deliberately NOT populated here.
+//
+// It was, until measurement showed what that cost: importing `lib/parser` from
+// the provider tree put mammoth and JSZip — over 700 KB — into a chunk every
+// page loaded, so opening the dashboard downloaded the entire DOCX engine to
+// render a list of projects.
+//
+// Registration now happens inside the worker that actually parses (see
+// `lib/workers`), where the import is dynamic. Nothing on the main thread needs
+// the registry: the upload control validates against the format catalogue,
+// which is a standalone module with no dependencies.
 
 /**
  * Client provider tree.
