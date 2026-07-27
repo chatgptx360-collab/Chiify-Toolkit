@@ -527,6 +527,8 @@ is the registry pattern generalised; **themes** are another token block;
 - [`docs/epub-generation.md`](docs/epub-generation.md) — the EPUB 3 engine: the
   package it produces, the specification rules that break books when ignored,
   and why the stylesheet is deliberately restrained.
+- [`docs/deployment.md`](docs/deployment.md) — deploying to Vercel or anywhere
+  else, and what a visitor to a shared link actually gets.
 - [`docs/validation.md`](docs/validation.md) — the validation engine, how scores
   are calculated, why nothing is fixed without being shown first, and how the
   preview renders the real book.
