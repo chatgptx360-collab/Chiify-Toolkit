@@ -44,13 +44,29 @@ jobs:
       - name: Verify
         run: npm run verify
 
+      # Pages has to be switched on for the repository once, by hand, before any
+      # of this can run. That is not an oversight in this workflow: creating a
+      # Pages site is an administrative action, and the automatic GITHUB_TOKEN
+      # deliberately cannot perform one. `pages: write` grants the right to
+      # publish to a site that exists, not to create it.
+      #
+      # Without this check the failure is "Resource not accessible by
+      # integration", which names neither the cause nor the fix.
+      - name: Check Pages is enabled
+        run: |
+          status=$(curl -sS -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/pages")
+
+          if [ "$status" = "404" ]; then
+            echo "::error title=GitHub Pages is not enabled::Open Settings → Pages, set Source to 'GitHub Actions', then re-run this workflow. It is a one-time step: a workflow token is not permitted to create a Pages site."
+            exit 1
+          fi
+
       - name: Configure Pages
         id: pages
         uses: actions/configure-pages@v5
-        with:
-          # Turns Pages on for the repository the first time this runs, so the
-          # deployment needs no manual setup.
-          enablement: true
 
       # A project site is served from a subdirectory, so every asset URL has to
       # carry it. `base_path` comes from the step above rather than being

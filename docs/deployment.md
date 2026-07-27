@@ -10,7 +10,7 @@ static export (`output: 'export'`), so anything that serves files can host it.
 
 ---
 
-## GitHub Pages (automatic)
+## GitHub Pages
 
 `.github/workflows/deploy.yml` builds and publishes on every push to `main` or
 `claude/chiify-toolkit-phase-5`, and can be re-run from the Actions tab. The
@@ -20,9 +20,25 @@ site lands at:
 https://chatgptx360-collab.github.io/Chiify-Toolkit/
 ```
 
-Nothing to configure: `actions/configure-pages` enables Pages on first run, and
-`actions/deploy-pages` authenticates with a short-lived OIDC token rather than a
-stored secret. There is no deployment credential anywhere in the repository.
+### One-time setup
+
+**Settings → Pages → Source: GitHub Actions.** Once, by hand.
+
+This cannot be automated, and the reason is worth knowing rather than working
+around: creating a Pages site is an administrative action on the repository, and
+the automatic `GITHUB_TOKEN` a workflow runs with deliberately cannot perform
+one. The `pages: write` permission grants the right to publish to a site that
+already exists, not to bring one into being. A workflow that could enable Pages
+could also enable it on a repository whose owner did not intend to publish
+anything.
+
+`actions/configure-pages` accepts an `enablement: true` input that attempts it
+anyway; against this token it fails with `Resource not accessible by
+integration`. The workflow checks first and says exactly this instead.
+
+After that one switch there is nothing further to configure, and no deployment
+credential exists anywhere in the repository — `actions/deploy-pages`
+authenticates with a short-lived OIDC token rather than a stored secret.
 
 The workflow runs `npm run verify` — typecheck, lint, format and the full test
 suite — before it builds. A deploy that publishes a broken site is worse than
