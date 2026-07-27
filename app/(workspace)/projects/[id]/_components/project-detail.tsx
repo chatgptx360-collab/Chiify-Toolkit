@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 import { DocumentAnalysis } from '@/components/analysis/document-analysis'
+import { GenerationPanel } from '@/components/epub/generation-panel'
 import { MetadataSuggestions } from '@/components/analysis/metadata-suggestions'
 import { EmptyState } from '@/components/common/empty-state'
 import { PageHeader } from '@/components/common/page-header'
@@ -15,7 +16,14 @@ import { ProjectStatusBadge } from '@/components/projects/project-status-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { SkeletonCard, SkeletonGroup, SkeletonText } from '@/components/ui/skeleton'
-import { useAnalysis, useMetadata, useProject, useProjectsReady, useStableNow } from '@/hooks'
+import {
+  useAnalysis,
+  useEpub,
+  useMetadata,
+  useProject,
+  useProjectsReady,
+  useStableNow,
+} from '@/hooks'
 import { projectStatusPresentation } from '@/lib/projects'
 import type { ProjectId } from '@/lib/types'
 import { formatDate, formatRelativeTime } from '@/lib/utils'
@@ -42,6 +50,7 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
   const router = useRouter()
   const analysis = useAnalysis(projectId as ProjectId)
   const { suggestions, applyOne, applyAll } = useMetadata(projectId as ProjectId, project)
+  const epub = useEpub(project)
 
   if (!ready) {
     return (
@@ -84,7 +93,7 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
             <Button variant="secondary" asChild>
               <Link href="/converter">
                 <Wand2 aria-hidden="true" />
-                Convert
+                Open converter
               </Link>
             </Button>
             <DeleteProjectDialog
@@ -147,20 +156,16 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
         <ProjectSettingsForm project={project} />
       </Section>
 
-      <Section title="Generated files" description="Everything produced from this manuscript.">
+      <Section title="Generate" description="Turn this manuscript into a finished EPUB 3 book.">
         <Card>
           <CardHeader className="pb-4">
-            <CardTitle as="h3">No files yet</CardTitle>
+            <CardTitle as="h3">EPUB 3</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-1 text-sm text-muted-foreground">
-            <p>
-              {analysis
-                ? 'Your manuscript has been read and structured. EPUB generation arrives in Phase 4.'
-                : 'Upload a manuscript first, then convert it to produce an EPUB.'}
-            </p>
-            <p className="text-xs text-subtle-foreground">
-              Generated books, their validation report and every download will be listed here.
-            </p>
+          <CardContent>
+            <GenerationPanel
+              epub={epub}
+              blockers={analysis ? [] : ['Upload a manuscript so Chiify can read it.']}
+            />
           </CardContent>
         </Card>
       </Section>

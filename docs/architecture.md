@@ -145,7 +145,7 @@ lib/utils      ← pure helpers. May import lib/types.
 lib/projects   ← workspace domain. May import types + utils. Never parser/epub.
 lib/documents  ← session store for parsed models. May import types only.
 lib/parser     ← input → model.   May import types + utils. Never epub/converter.
-lib/epub       ← model → output.  May import types + utils. Never parser.
+lib/epub       ← model → EPUB 3.  May import types + utils. Never parser.
 lib/converter  ← orchestration.   May import types + utils. Knows about neither.
 hooks/*        ← React bindings.  May import lib/*. Nothing in lib/ imports a hook.
 components/*   ← presentation.    May import lib/types, lib/utils and hooks.

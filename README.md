@@ -33,23 +33,24 @@ complete publishing ecosystem.
 
 ## What is built
 
-| Area                                                                                                                            | Status         |
-| ------------------------------------------------------------------------------------------------------------------------------- | -------------- |
-| Next.js 16 App Router, React 19, TypeScript (strict)                                                                            | Configured     |
-| Tailwind CSS v4, CSS-first design tokens, dark-first theming                                                                    | Complete       |
-| Component library (buttons, cards, inputs, badges, dialogs, alerts, progress, empty states, skeletons, toasts, tooltips, menus) | Complete       |
-| Responsive application shell (top bar, collapsible sidebar, mobile drawer, breadcrumbs, footer, theme toggle)                   | Complete       |
-| Six placeholder routes with real content describing their purpose                                                               | Complete       |
-| Domain model, conversion-pipeline contract, parser registry, EPUB generator ports                                               | Complete       |
-| Motion vocabulary and animation utilities                                                                                       | Complete       |
-| ESLint + Prettier + typecheck, all green                                                                                        | Complete       |
-| Project management — create, search, delete, local-first storage                                                                | Complete       |
-| DOCX parsing into the internal document model                                                                                   | Complete       |
-| Validation, chapter detection with confidence, image extraction, statistics                                                     | Complete       |
-| Accessible manuscript upload with format and size validation                                                                    | Complete       |
-| Book metadata forms with publishing-rule validation                                                                             | Complete       |
-| Per-project conversion settings, dashboard driven by real data                                                                  | Complete       |
-| EPUB generation, in-app preview, specification validation                                                                       | **Phases 4–5** |
+| Area                                                                                                                            | Status      |
+| ------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| Next.js 16 App Router, React 19, TypeScript (strict)                                                                            | Configured  |
+| Tailwind CSS v4, CSS-first design tokens, dark-first theming                                                                    | Complete    |
+| Component library (buttons, cards, inputs, badges, dialogs, alerts, progress, empty states, skeletons, toasts, tooltips, menus) | Complete    |
+| Responsive application shell (top bar, collapsible sidebar, mobile drawer, breadcrumbs, footer, theme toggle)                   | Complete    |
+| Six placeholder routes with real content describing their purpose                                                               | Complete    |
+| Domain model, conversion-pipeline contract, parser registry, EPUB generator ports                                               | Complete    |
+| Motion vocabulary and animation utilities                                                                                       | Complete    |
+| ESLint + Prettier + typecheck, all green                                                                                        | Complete    |
+| Project management — create, search, delete, local-first storage                                                                | Complete    |
+| DOCX parsing into the internal document model                                                                                   | Complete    |
+| EPUB 3 generation — XHTML, CSS, navigation, metadata, packaging, download                                                       | Complete    |
+| Validation, chapter detection with confidence, image extraction, statistics                                                     | Complete    |
+| Accessible manuscript upload with format and size validation                                                                    | Complete    |
+| Book metadata forms with publishing-rule validation                                                                             | Complete    |
+| Per-project conversion settings, dashboard driven by real data                                                                  | Complete    |
+| In-app preview, specification validation, quality reports                                                                       | **Phase 5** |
 
 ### Deliberate non-goals so far
 
@@ -123,6 +124,7 @@ components/
 ├── dashboard/              Dashboard-specific presentation (stat card)
 ├── projects/               Project library, cards, create/delete dialogs
 ├── analysis/               Statistics, chapter list, metadata suggestions
+├── epub/                   Generation progress and download
 ├── upload/                 Manuscript dropzone
 └── forms/                  Accessible form structure (field, section, metadata form)
 
@@ -137,6 +139,9 @@ lib/
 │   └── docx/               Validator, style map, block converter, normaliser,
 │                           chapter detector, image + metadata extractors,
 │                           statistics — one service per responsibility
+├── epub/                   Internal document model → EPUB 3 package
+│                           Asset manager, XHTML + CSS generators, navigation,
+│                           metadata, package document, packager
 ├── converter/              Pipeline orchestration                   (Phases 3–5)
 └── epub/                   Internal document model → EPUB package   (Phase 4)
 
@@ -431,27 +436,41 @@ makes it the universal input layer for every export format on the roadmap.
   semantic `role`, not a font size.
 - Expose the parser to the pipeline as a `ConversionStage` with id `parse`.
 
-### Phase 4 — EPUB generation
+### Phase 4 — EPUB generation _(complete)_
 
-- Consume `ParsedDocument` from `lib/documents`. **Never read a `.docx`** — the
-  parser is the only thing that does, and the whole architecture depends on
-  keeping it that way.
-- Implement `XhtmlGenerator`, `CssGenerator`, `NavigationBuilder`,
-  `MetadataGenerator` and `EpubPackager` from `lib/epub/types.ts`.
-- Use the constants in `lib/epub/constants.ts` for container paths, namespaces
-  and media types — do not re-declare them.
-- Add `generate` and `package` stages to the pipeline.
-- Generators must switch exhaustively on `Block['type']`. The discriminated
-  union means a new block type becomes a compile error in every generator that
-  has not handled it, which is the intended safety net.
+Delivered as `lib/epub/`, one service per responsibility:
 
-### Phase 5 — Preview, validation, download
+| Service                | Responsibility                                                 |
+| ---------------------- | -------------------------------------------------------------- |
+| `asset-manager`        | Images → container paths, ids, media types, cover selection    |
+| `xhtml-generator`      | Blocks → XHTML, with an exhaustive switch over the block union |
+| `stylesheet-generator` | Themed CSS that suggests rather than specifies                 |
+| `navigation-builder`   | `nav.xhtml` and `toc.ncx` from chapters and subheadings        |
+| `metadata-builder`     | Dublin Core plus computed accessibility metadata               |
+| `package-document`     | Manifest, spine and guide                                      |
+| `packager`             | JSZip, with the mimetype first and uncompressed                |
+| `naming`               | Safe, unique, collision-free filenames and ids                 |
 
-- Implement `EpubValidator`; return the `ValidationReport` shape already defined
-  in `lib/types/validation.ts` so the existing UI renders it.
-- Use `summariseIssues()` for the pass/fail rule rather than re-deriving it.
-- Surface pipeline failures through the existing `AppError` shape — `message` is
-  written for an author, `hint` says what to do about it.
+`generator.ts` orchestrates them and does nothing else.
+
+**The engine reads the document model and nothing else** — it never sees a
+`.docx`. In the other direction, nothing outside `lib/epub` knows what an OPF
+is: the UI asks for an artifact and receives a `Blob`.
+
+### Phase 5 — Preview, validation, quality reports
+
+- Implement `EpubValidator` from `lib/epub/types.ts` as a **native TypeScript
+  validator**. EPUBCheck is a Java application and cannot run in the browser;
+  this app is local-first with no backend, so the rules are implemented directly.
+  Say so in the UI rather than implying official certification.
+- Work from `GenerationOutcome`, which returns the described package and the
+  generated files alongside the `Blob` — validation and preview need neither to
+  unzip anything nor to re-derive structure.
+- Return the `ValidationReport` shape already defined in
+  `lib/types/validation.ts`, and use `summariseIssues()` for the pass/fail rule
+  rather than re-deriving it.
+- Surface failures through the existing `AppError` shape — `message` is written
+  for an author, `hint` says what to do about it.
 
 ### Phase 6 — Performance, testing, accessibility, refinement
 
@@ -475,6 +494,9 @@ is the registry pattern generalised; **themes** are another token block;
   and the reasoning behind each decision in more depth.
 - [`docs/parsing.md`](docs/parsing.md) — the DOCX pipeline: every stage, the
   reasoning behind each decision, and how the fixtures and tests are built.
+- [`docs/epub-generation.md`](docs/epub-generation.md) — the EPUB 3 engine: the
+  package it produces, the specification rules that break books when ignored,
+  and why the stylesheet is deliberately restrained.
 - [`docs/design-system.md`](docs/design-system.md) — full token reference,
   component catalogue and usage rules.
 - The live design-system reference is at `/settings` in the running app, rendered
