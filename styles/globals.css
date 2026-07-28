@@ -124,6 +124,18 @@
   --info: var(--brand-blue-500);
   --info-subtle: rgb(59 130 246 / 0.14);
 
+  /* Text on a *-subtle background.
+     A tinted surface raises the background luminance, so an intent colour that
+     clears AA against the page can fail against its own subtle fill. Measured:
+     #3b82f6 on the composited #1d273a is 4.07:1, under the 4.5 required for
+     11px text. These are one step lighter and clear it with headroom. The base
+     intent tokens are unchanged — they are correct for their own uses. */
+  --primary-on-subtle: var(--brand-blue-400);
+  --success-on-subtle: var(--success);
+  --warning-on-subtle: var(--warning);
+  --danger-on-subtle: var(--danger);
+  --info-on-subtle: var(--brand-blue-400);
+
   /* The raised knob of a switch. White in both themes — it reads as a physical
      object above the track, so unlike every other surface it does not invert.
      A token rather than a literal `bg-white` so the rule "no hex in a
@@ -197,6 +209,15 @@
   --info: var(--brand-blue-600);
   --info-subtle: rgb(37 99 235 / 0.1);
 
+  /* Text on a *-subtle background — see the note in the dark block. Measured
+     against the composited fills, all four failed between 4.13 and 4.48:1;
+     one step darker clears AA with headroom. */
+  --primary-on-subtle: var(--brand-blue-700);
+  --success-on-subtle: #166534;
+  --warning-on-subtle: #92400e;
+  --danger-on-subtle: var(--brand-red-700);
+  --info-on-subtle: var(--brand-blue-700);
+
   --elevation-xs: 0 1px 2px 0 rgb(9 9 11 / 0.05);
   --elevation-sm: 0 1px 3px 0 rgb(9 9 11 / 0.08), 0 1px 2px -1px rgb(9 9 11 / 0.06);
   --elevation-md: 0 4px 12px -2px rgb(9 9 11 / 0.1), 0 2px 6px -2px rgb(9 9 11 / 0.06);
@@ -266,6 +287,11 @@
   --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary-subtle: var(--primary-subtle);
+  --color-primary-on-subtle: var(--primary-on-subtle);
+  --color-success-on-subtle: var(--success-on-subtle);
+  --color-warning-on-subtle: var(--warning-on-subtle);
+  --color-danger-on-subtle: var(--danger-on-subtle);
+  --color-info-on-subtle: var(--info-on-subtle);
 
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);

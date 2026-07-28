@@ -41,7 +41,20 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(function 
         className={cn(
           'w-full appearance-none rounded-md border bg-background text-foreground',
           'transition-[border-color,box-shadow] motion-fast',
-          'outline-none focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring',
+          // WHY `focus-visible:outline-solid` IS REQUIRED HERE
+          //
+          // Tailwind v4 emits `outline-2` as `outline-style: var(--tw-outline-style)`,
+          // and `outline-hidden`/`outline-none` set that variable to `none`. So the
+          // obvious-looking string — suppress the default outline, restore it on
+          // focus-visible — resolves to a 2px outline with no style, which paints
+          // nothing. The element genuinely matches `:focus-visible`; only the paint is
+          // missing, which is why this survived six phases of review and an eyeball
+          // check. `outline-solid` sets the variable back, and its `:focus-visible`
+          // specificity beats the base class.
+          //
+          // Verified by measurement, not by reading: tabbing the app now reports
+          // `outline: 2px solid` on every control.
+          'outline-hidden focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring',
           'disabled:cursor-not-allowed disabled:opacity-60',
           size === 'sm' && 'h-8 pr-8 pl-2.5 text-xs',
           size === 'md' && 'h-9 pr-9 pl-3 text-sm',
